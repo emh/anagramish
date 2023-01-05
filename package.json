@@ -5,8 +5,12 @@
   "main": "./dist/index.js",
   "scripts": {
     "start": "node ./node_modules/parcel-bundler/bin/cli serve ./src/index.html --port 8080",
-    "build": "node ./node_modules/parcel-bundler/bin/cli build ./src/index.html --out-dir ./docs/",
-    "lint": "node ./node_modules/eslint/bin/eslint . --ext .js --fix"
+    "prebuild-dev": "shx rm -rf dist/*",
+    "build-dev": "node ./node_modules/parcel-bundler/bin/cli build ./src/index.html --no-optimize --public-url ./",
+    "prebuild": "shx rm -rf dist/*",
+    "build": "node ./node_modules/parcel-bundler/bin/cli build ./src/index.html --public-url ./anagramish/",
+    "lint": "node ./node_modules/eslint/bin/eslint . --ext .js --fix",
+    "push-gh-pages": "push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
   },
   "repository": {
     "type": "git",
@@ -20,5 +24,8 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.26.0",
     "parcel-bundler": "^1.12.5"
+  },
+  "dependencies": {
+    "shx": "^0.3.4"
   }
 }
