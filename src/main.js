@@ -166,7 +166,7 @@ function setupKeyboardHandler(state) {
         if (!key.classList.contains('disabled')) {
             if (key.textContent === '⌫') {
                 handleBackspace(state);
-            } else {
+            } else if (key.textContent.length === 1) {
                 handleLetterInput(state, key.textContent);
             }
 
