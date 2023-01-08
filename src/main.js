@@ -31,12 +31,12 @@ function choosePair(pairs, level) {
 }
 
 function renderLetter(letter, classes) {
-    const div = document.createElement('div');
+    const el = document.createElement('input');
 
-    div.className = ['letter', ...classes].join(' ');
-    div.textContent = letter;
+    el.className = ['letter', ...classes].join(' ');
+    el.value = letter;
 
-    document.getElementById('board').appendChild(div);
+    document.getElementById('board').appendChild(el);
 }
 
 function renderBoard(state) {
