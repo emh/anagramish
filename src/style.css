@@ -153,3 +153,36 @@ progress {
 .letter.active {
   border: solid 2px black;
 }
+
+#controls {
+  position: absolute;
+  top: 50px;
+  right: 50px;
+
+}
+
+#controls button {
+  background-color: white;
+  border: solid 1px black;
+  border-radius: 25px;
+  height: 50px;
+  width: 50px;
+}
+
+#controls button:hover {
+  filter: brightness(150%);
+  border: solid 1px gray;
+}
+
+#controls .one {
+  background-color: yellow;
+}
+
+#controls button.two {
+  background-color: orange;
+}
+
+#controls button.three {
+  background-color: red;
+}
+

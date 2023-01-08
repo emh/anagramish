@@ -5,8 +5,29 @@ import { isLetter } from './words.mjs';
 
 const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
-function choosePair(pairs) {
-    return pairs[Math.floor(Math.random() * pairs.length)];
+function parse(pairs) {
+    return pairs.map((pair) => pair.split(','));
+}
+
+const checkLevel = (pair, level) => {
+    const count = pair[2];
+
+    switch (level) {
+        case 3:
+            return count < 10;
+        case 2:
+            return count >= 10 && count < 100;
+        case 1:
+            return count >= 100 && count < 1000;
+        default:
+            return count >= 1000;
+    }
+}
+
+function choosePair(pairs, level) {
+    const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
+
+    return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
 }
 
 function renderLetter(letter, classes) {
@@ -18,7 +39,7 @@ function renderLetter(letter, classes) {
     document.getElementById('board').appendChild(div);
 }
 
-function render(state) {
+function renderBoard(state) {
     const startWord = state.words[0];
     const endWord = state.words[5];
 
@@ -32,8 +53,8 @@ function render(state) {
     }));
 }
 
-function init(pairs) {
-    const pair = choosePair(pairs).split(',');
+function initWords(pairs, level) {
+    const pair = choosePair(pairs, level);
 
     const words = [
         pair[0],
@@ -44,18 +65,46 @@ function init(pairs) {
         pair[1]
     ].map((w) => w.split(''));
 
+    return words;
+}
+
+function init(pairs) {
+    const level = 0;
+
+    const words = initWords(pairs, level);
+
     return {
+        pairs,
         words,
+        level,
         position: { x: 0, y: 1 }
     };
+}
+
+function setupControls(state) {
+    const levelButtons = document.querySelectorAll('#controls button');
+
+    levelButtons.forEach((button) => button.addEventListener('click', (e) => {
+        const classList = e.target.classList;
+
+        if (classList.contains("zero")) state.level = 0;
+        if (classList.contains("one")) state.level = 1;
+        if (classList.contains("two")) state.level = 2;
+        if (classList.contains("three")) state.level = 3;
+
+        state.words = initWords(state.pairs, state.level);
+
+        renderBoard(state);
+    }));
 }
 
 Promise.all([
     loadFile(pairsFile)
 ]).then(([pairs]) => {
-    const state = init(pairs);
+    const state = init(parse(pairs));
 
-    render(state);
+    setupControls(state);
+    renderBoard(state);
 
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
@@ -109,6 +158,6 @@ Promise.all([
                 }
         }
 
-        render(state);
+        renderBoard(state);
     });
 });
