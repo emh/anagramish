@@ -117,21 +117,52 @@ progress {
   display: none;
 }
 
+html, body, #app {
+  height: 100%;
+}
+
 #app {
   display: flex;
-  justify-content: center;
-  padding: 50px;
+  flex-direction: column;
+}
+
+#header {
+  display: flex;
+  align-items: center;
+  border-bottom: solid 1px black;
+  padding: 10px;
+}
+
+#header h1 {
+  flex: 1;
+  margin: 0;
+}
+
+#game {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 10px;
+  gap: 10px;
+}
+
+#middle {
+  flex: 1;
 }
 
 #board {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-template-columns: 50px 50px 50px 50px 50px;
   gap: 5px;
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .letter {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: solid 1px black;
   height: 50px;
   width: 50px;
@@ -152,35 +183,70 @@ progress {
   border: solid 2px black;
 }
 
-#controls {
-  position: absolute;
-  top: 50px;
-  right: 50px;
-
-}
-
-#controls button {
+#levels button {
   background-color: white;
   border: solid 1px black;
-  border-radius: 25px;
-  height: 50px;
-  width: 50px;
+  border-radius: 15px;
+  height: 30px;
+  width: 30px;
+  padding: 0;
+  color: black;
 }
 
-#controls button:hover {
+#levels button:hover {
   filter: brightness(150%);
   border: solid 1px gray;
 }
 
-#controls .one {
+#levels .one {
   background-color: yellow;
 }
 
-#controls button.two {
+#levels button.two {
   background-color: orange;
 }
 
-#controls button.three {
+#levels button.three {
   background-color: red;
 }
 
+#keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+}
+
+#keyboard > div {
+  display: flex;
+  gap: 5px;
+}
+
+#keyboard .key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: solid 1px black;
+  height: 30px;
+  width: 30px;
+  font-size: 20px;
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+
+#keyboard .control {
+  width: 45px;
+}
+
+#keyboard .disabled {
+  color: lightgray;
+  border: solid 1px lightgray;
+}
+
+#keyboard > div:nth-child(2) {
+  margin-left: 10px;
+}
+
+#keyboard > div:nth-child(3) {
+  margin-left: 20px;
+}

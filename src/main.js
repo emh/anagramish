@@ -31,12 +31,12 @@ function choosePair(pairs, level) {
 }
 
 function renderLetter(letter, classes) {
-    const el = document.createElement('input');
+    const div = document.createElement('div');
 
-    el.className = ['letter', ...classes].join(' ');
-    el.value = letter;
+    div.className = ['letter', ...classes].join(' ');
+    div.textContent = letter;
 
-    document.getElementById('board').appendChild(el);
+    document.getElementById('board').appendChild(div);
 }
 
 function renderBoard(state) {
@@ -51,6 +51,35 @@ function renderBoard(state) {
 
         renderLetter(l, [colorClass, activeClass]);
     }));
+}
+
+const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
+const row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+const row3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm', '⌫'];
+
+function renderRow(keys, letters) {
+    const div = document.createElement('div');
+
+    keys.forEach((key) => {
+        const el = document.createElement('div');
+        const disabled = key.length === 1 && !letters.includes(key);
+        const control = key === '⌫';
+        el.className = `key${disabled ? ' disabled' : ''}${control ? ' control' : ''}`;
+        el.textContent = key;
+        div.appendChild(el);
+    })
+
+    document.getElementById('keyboard').appendChild(div);
+}
+
+function renderKeyboard(words) {
+    const letters = [...words[0], ...words[5], '⌫'];
+
+    document.getElementById('keyboard').innerHTML = '';
+
+    renderRow(row1, letters);
+    renderRow(row2, letters);
+    renderRow(row3, letters);
 }
 
 function initWords(pairs, level) {
@@ -81,8 +110,8 @@ function init(pairs) {
     };
 }
 
-function setupControls(state) {
-    const levelButtons = document.querySelectorAll('#controls button');
+function setupLevelButtons(state) {
+    const levelButtons = document.querySelectorAll('#levels button');
 
     levelButtons.forEach((button) => button.addEventListener('click', (e) => {
         const classList = e.target.classList;
@@ -94,8 +123,86 @@ function setupControls(state) {
 
         state.words = initWords(state.pairs, state.level);
 
-        renderBoard(state);
+        render(state);
     }));
+}
+
+function handleBackspace(state) {
+    if (state.position.x === 0) {
+        if (state.position.y > 1) {
+            state.position.y = state.position.y - 1;
+        }
+
+        state.position.x = 4;
+    } else {
+        state.position.x = state.position.x - 1;
+    }
+
+    state.words[state.position.y][state.position.x] = ' ';
+}
+
+function handleLetterInput(state, letter) {
+    state.words[state.position.y][state.position.x] = letter;
+
+    if (state.position.x === 4) {
+        if (state.position.y === 4) {
+            state.position.y = 1;
+        } else {
+            state.position.y = state.position.y + 1;
+        }
+
+        state.position.x = 0;
+    } else {
+        state.position.x = state.position.x + 1;
+    }
+}
+
+function setupKeyboardHandler(state) {
+    const div = document.getElementById('keyboard');
+
+    div.addEventListener('click', (e) => {
+        const key = e.target;
+
+        if (!key.classList.contains('disabled')) {
+            if (key.textContent === '⌫') {
+                handleBackspace(state);
+            } else {
+                handleLetterInput(state, key.textContent);
+            }
+
+            renderBoard(state);
+        }
+    });
+}
+
+function setupBoardClickHandler(state) {
+    const div = document.getElementById('board');
+
+    div.addEventListener('click', (e) => {
+        const square = e.target;
+
+        if (square.classList.contains('letter')) {
+            const index = [...square.parentNode.children].indexOf(square);
+
+            if (index > 4 && index < 25) {
+                state.position.x = index % 5;
+                state.position.y = Math.floor(index / 5);
+
+                renderBoard(state);
+            }
+        }
+    });
+}
+
+function setupControls(state) {
+    setupLevelButtons(state);
+    setupKeyboardHandler(state);
+    setupBoardClickHandler(state);
+}
+
+function render(state) {
+    renderBoard(state);
+    renderKeyboard(state.words);
 }
 
 Promise.all([
@@ -103,8 +210,8 @@ Promise.all([
 ]).then(([pairs]) => {
     const state = init(parse(pairs));
 
+    render(state);
     setupControls(state);
-    renderBoard(state);
 
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
@@ -125,34 +232,12 @@ Promise.all([
 
                 break;
             case 'Backspace':
-                if (state.position.x === 0) {
-                    if (state.position.y > 1) {
-                        state.position.y = state.position.y - 1;
-                    }
-
-                    state.position.x = 4;
-                } else {
-                    state.position.x = state.position.x - 1;
-                }
-
-                state.words[state.position.y][state.position.x] = ' ';
+                handleBackspace(state);
 
                 break;
             default:
                 if (isLetter(e.key)) {
-                    state.words[state.position.y][state.position.x] = e.key.toLowerCase();
-
-                    if (state.position.x === 4) {
-                        if (state.position.y === 4) {
-                            state.position.y = 1;
-                        } else {
-                            state.position.y = state.position.y + 1;
-                        }
-
-                        state.position.x = 0;
-                    } else {
-                        state.position.x = state.position.x + 1;
-                    }
+                    handleLetterInput(state, e.key.toLowerCase());
                 } else {
                     console.log(e.key);
                 }
