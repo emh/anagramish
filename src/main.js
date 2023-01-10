@@ -44,8 +44,9 @@ function renderLetter(letter, classes) {
 function renderBoard(state) {
     const startWord = state.words[0];
     const endWord = state.words[5];
-
-    document.getElementById('board').innerHTML = '';
+    const board = document.getElementById('board')
+        
+    board.innerHTML = '';
 
     state.words.forEach((w, y) => w.forEach((l, x) => {
         const colorClass = startWord.indexOf(l) !== -1 ? 'start' : endWord.indexOf(l) !== -1 ? 'end' : '';
@@ -53,6 +54,24 @@ function renderBoard(state) {
 
         renderLetter(l, [colorClass, activeClass]);
     }));
+
+    if (state.position.y > 1 && state.position.y < 5) {
+        const el = document.createElement('div');
+        el.className = 'trash';
+        el.textContent = 'X';
+        el.style.left = '280px';
+        el.style.top = `${(state.position.y - 1) * 55 + 8}px`;
+
+        el.addEventListener('click', () => {
+            state.words[state.position.y] = '     '.split('');
+            state.position.y -= 1;
+            state.words[state.position.y] = '     '.split('');
+
+            renderBoard(state);
+        });
+        
+        board.appendChild(el);
+    }
 }
 
 const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
@@ -181,7 +200,7 @@ const nth = (n) => {
 }
 
 function handleEnter(state) {
-    if (state.position.x === 5) {
+    if (state.position.x === 5 && state.position.y < 5) {
         const y = state.position.y;
         const word = state.words[y].join('');
         const firstWord = state.words[0].join('');
@@ -191,11 +210,13 @@ function handleEnter(state) {
             renderError('Not a word!', y);
         } else if (compareWords(word, firstWord) !== (5 - y) || compareWords(word, lastWord) !== y) {
             renderError(`The ${nth(y)} word must have ${5 - y} yellows and ${y} reds.`);
-        } else if (y < 4) {
+        } else {
             state.position.y += 1;
             state.position.x = 0;
-        } else {
-            renderSuccess();
+
+            if (y === 4) {
+                renderSuccess();
+            }
         }
     }
 }
@@ -206,7 +227,7 @@ function setupKeyboardHandler(state) {
     div.addEventListener('click', (e) => {
         const key = e.target;
 
-        if (!key.classList.contains('disabled')) {
+        if (state.position.y < 5 && !key.classList.contains('disabled')) {
             if (key.textContent === '⌫') {
                 handleBackspace(state);
             } else if (key.textContent === '⏎') {
@@ -220,26 +241,28 @@ function setupKeyboardHandler(state) {
     });
 
     document.addEventListener('keydown', (e) => {
-        switch (e.key) {
-            case 'Backspace':
-                handleBackspace(state);
-                break;
-            case 'Enter':
-                handleEnter(state);
-                break;
-            default:
-                if (isLetter(e.key)) {
-                    if (state.words[0].includes(e.key) || state.words[5].includes(e.key)) {
-                        handleLetterInput(state, e.key.toLowerCase());
+        if (state.position.y < 5) {
+            switch (e.key) {
+                case 'Backspace':
+                    handleBackspace(state);
+                    break;
+                case 'Enter':
+                    handleEnter(state);
+                    break;
+                default:
+                    if (isLetter(e.key)) {
+                        if (state.words[0].includes(e.key) || state.words[5].includes(e.key)) {
+                            handleLetterInput(state, e.key.toLowerCase());
+                        } else {
+                            renderError('All letters must come from the first or last word');
+                        }
                     } else {
-                        renderError('All letters must come from the first or last word');
+                        console.log(e.key);
                     }
-                } else {
-                    console.log(e.key);
-                }
-        }
+            }
 
-        renderBoard(state);
+            renderBoard(state);
+        }
     });
 }
 

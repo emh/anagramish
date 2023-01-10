@@ -152,6 +152,7 @@ html, body, #app {
 }
 
 #board {
+  position: relative;
   display: grid;
   grid-template-columns: 50px 50px 50px 50px 50px;
   gap: 5px;
@@ -267,4 +268,10 @@ html, body, #app {
   display: none;
   max-width: 200px;
   text-align: center;
+}
+
+.trash { 
+  position: absolute;
+  font-size: 30px;
+  cursor: pointer;
 }
