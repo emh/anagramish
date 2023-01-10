@@ -1,7 +1,9 @@
 'use strict';
 
 import pairsFile from './pairs.txt';
-import { isLetter } from './words.mjs';
+import dictFile from './dictionary.txt';
+
+import { compareWords, isLetter } from './words.mjs';
 
 const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
@@ -55,7 +57,7 @@ function renderBoard(state) {
 
 const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
 const row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-const row3 = ['z', 'x', 'c', 'v', 'b', 'n', 'm', '⌫'];
+const row3 = ['⏎', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '⌫'];
 
 function renderRow(keys, letters) {
     const div = document.createElement('div');
@@ -63,7 +65,7 @@ function renderRow(keys, letters) {
     keys.forEach((key) => {
         const el = document.createElement('div');
         const disabled = key.length === 1 && !letters.includes(key);
-        const control = key === '⌫';
+        const control = key === '⌫' || key === '⏎';
         el.className = `key${disabled ? ' disabled' : ''}${control ? ' control' : ''}`;
         el.textContent = key;
         div.appendChild(el);
@@ -73,7 +75,7 @@ function renderRow(keys, letters) {
 }
 
 function renderKeyboard(words) {
-    const letters = [...words[0], ...words[5], '⌫'];
+    const letters = [...words[0], ...words[5], '⌫', '⏎'];
 
     document.getElementById('keyboard').innerHTML = '';
 
@@ -97,13 +99,14 @@ function initWords(pairs, level) {
     return words;
 }
 
-function init(pairs) {
+function init(pairs, dict) {
     const level = 0;
 
     const words = initWords(pairs, level);
 
     return {
         pairs,
+        dict,
         words,
         level,
         position: { x: 0, y: 1 }
@@ -122,38 +125,78 @@ function setupLevelButtons(state) {
         if (classList.contains("three")) state.level = 3;
 
         state.words = initWords(state.pairs, state.level);
+        state.position = { x: 0, y: 1 };
+
+        e.target.blur();
 
         render(state);
     }));
 }
 
 function handleBackspace(state) {
-    if (state.position.x === 0) {
-        if (state.position.y > 1) {
-            state.position.y = state.position.y - 1;
-        }
-
-        state.position.x = 4;
-    } else {
-        state.position.x = state.position.x - 1;
+    if (state.position.x > 0) {
+        state.position.x -= 1;
+        state.words[state.position.y][state.position.x] = ' ';
     }
-
-    state.words[state.position.y][state.position.x] = ' ';
 }
 
 function handleLetterInput(state, letter) {
-    state.words[state.position.y][state.position.x] = letter;
-
-    if (state.position.x === 4) {
-        if (state.position.y === 4) {
-            state.position.y = 1;
-        } else {
-            state.position.y = state.position.y + 1;
-        }
-
-        state.position.x = 0;
-    } else {
+    if (state.position.x < 5) {
+        state.words[state.position.y][state.position.x] = letter;
+        
         state.position.x = state.position.x + 1;
+    }
+}
+
+function renderError(message, y) {
+    const div = document.getElementById('error');
+
+    div.textContent = message;
+    div.style.display = 'block';
+
+    setTimeout(() => div.style.display = 'none', 2000);
+}
+
+function renderSuccess() {
+    console.log('success');
+    const div = document.getElementById('success');
+
+    div.textContent = 'You did it!';
+    div.style.display = 'block';
+
+    setTimeout(() => div.style.display = 'none', 2000);
+}
+
+const nth = (n) => {
+    switch (n) {
+        case 1:
+            return 'first';
+        case 2:
+            return 'second';
+        case 3:
+            return 'third';
+        case 4:
+            return 'fourth';
+    }
+}
+
+function handleEnter(state) {
+    if (state.position.x === 5) {
+        const y = state.position.y;
+        const word = state.words[y].join('');
+        const firstWord = state.words[0].join('');
+        const lastWord = state.words[5].join('');
+
+        if (!state.dict.includes(word)) {
+            renderError('Not a word!', y);
+        } else if (compareWords(word, firstWord) !== (5 - y) || compareWords(word, lastWord) !== y) {
+            renderError(`The ${nth(y)} word must have ${5 - y} yellows and ${y} reds.`);
+        } else if (y < 4) {
+            state.position.y += 1;
+            state.position.x = 0;
+        } else {
+            renderSuccess();
+        }
     }
 }
 
@@ -166,6 +209,8 @@ function setupKeyboardHandler(state) {
         if (!key.classList.contains('disabled')) {
             if (key.textContent === '⌫') {
                 handleBackspace(state);
+            } else if (key.textContent === '⏎') {
+                handleEnter(state);
             } else if (key.textContent.length === 1) {
                 handleLetterInput(state, key.textContent);
             }
@@ -173,31 +218,34 @@ function setupKeyboardHandler(state) {
             renderBoard(state);
         }
     });
-}
 
-function setupBoardClickHandler(state) {
-    const div = document.getElementById('board');
-
-    div.addEventListener('click', (e) => {
-        const square = e.target;
-
-        if (square.classList.contains('letter')) {
-            const index = [...square.parentNode.children].indexOf(square);
-
-            if (index > 4 && index < 25) {
-                state.position.x = index % 5;
-                state.position.y = Math.floor(index / 5);
-
-                renderBoard(state);
-            }
+    document.addEventListener('keydown', (e) => {
+        switch (e.key) {
+            case 'Backspace':
+                handleBackspace(state);
+                break;
+            case 'Enter':
+                handleEnter(state);
+                break;
+            default:
+                if (isLetter(e.key)) {
+                    if (state.words[0].includes(e.key) || state.words[5].includes(e.key)) {
+                        handleLetterInput(state, e.key.toLowerCase());
+                    } else {
+                        renderError('All letters must come from the first or last word');
+                    }
+                } else {
+                    console.log(e.key);
+                }
         }
+
+        renderBoard(state);
     });
 }
 
 function setupControls(state) {
     setupLevelButtons(state);
     setupKeyboardHandler(state);
-    setupBoardClickHandler(state);
 }
 
 function render(state) {
@@ -206,43 +254,11 @@ function render(state) {
 }
 
 Promise.all([
-    loadFile(pairsFile)
-]).then(([pairs]) => {
-    const state = init(parse(pairs));
+    loadFile(pairsFile),
+    loadFile(dictFile)
+]).then(([pairs, dict]) => {
+    const state = init(parse(pairs), dict);
 
     render(state);
     setupControls(state);
-
-    document.addEventListener('keydown', (e) => {
-        switch (e.key) {
-            case 'ArrowUp':
-                state.position.y = state.position.y === 1 ? 1 : state.position.y - 1;
-                break;
-            case 'ArrowDown':
-                state.position.y = state.position.y === 4 ? 4 : state.position.y + 1;
-                break;
-            case 'ArrowLeft':
-                state.position.x = state.position.x === 0 ? 0 : state.position.x - 1;
-                break;
-            case 'ArrowRight':
-                state.position.x = state.position.x === 4 ? 4 : state.position.x + 1;
-                break;
-            case 'Delete':
-                state.words[state.position.y][state.position.x] = ' ';
-
-                break;
-            case 'Backspace':
-                handleBackspace(state);
-
-                break;
-            default:
-                if (isLetter(e.key)) {
-                    handleLetterInput(state, e.key.toLowerCase());
-                } else {
-                    console.log(e.key);
-                }
-        }
-
-        renderBoard(state);
-    });
 });

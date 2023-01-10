@@ -247,6 +247,24 @@ html, body, #app {
   margin-left: 10px;
 }
 
-#keyboard > div:nth-child(3) {
-  margin-left: 20px;
+#error {
+  border: solid 1px red;
+  padding: 10px;
+  margin: 10px;
+  color: red;
+  font-size: 20px;
+  display:none;
+  max-width: 200px;
+  text-align: center;
+}
+
+#success {
+  border: solid 1px green;
+  padding: 10px;
+  margin: 10px;
+  color: green;
+  font-size: 20px;
+  display: none;
+  max-width: 200px;
+  text-align: center;
 }
