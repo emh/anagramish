@@ -27,11 +27,9 @@ const checkLevel = (pair, level) => {
 }
 
 function choosePair(pairs, level) {
-    // const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
+    const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
 
-    // return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
-
-    return ['angel', 'torch', 200];
+    return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
 }
 
 function renderLetter(letter, classes) {
