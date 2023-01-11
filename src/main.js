@@ -27,9 +27,11 @@ const checkLevel = (pair, level) => {
 }
 
 function choosePair(pairs, level) {
-    const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
+    // const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
 
-    return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
+    // return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
+
+    return ['angel', 'torch', 200];
 }
 
 function renderLetter(letter, classes) {
@@ -203,13 +205,16 @@ function handleEnter(state) {
     if (state.position.x === 5 && state.position.y < 5) {
         const y = state.position.y;
         const word = state.words[y].join('');
+        const previousWord = state.words[y-1].join('');
         const firstWord = state.words[0].join('');
         const lastWord = state.words[5].join('');
 
         if (!state.dict.includes(word)) {
             renderError('Not a word!', y);
+        } else if (compareWords(word, previousWord) !== 4) {
+            renderError('You must change only 1 letter from the previous word.');
         } else if (compareWords(word, firstWord) !== (5 - y) || compareWords(word, lastWord) !== y) {
-            renderError(`The ${nth(y)} word must have ${5 - y} yellows and ${y} reds.`);
+            renderError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
         } else {
             state.position.y += 1;
             state.position.x = 0;
