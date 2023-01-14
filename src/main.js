@@ -455,13 +455,17 @@ function renderStars(seconds) {
 }
 
 function startClock(state) {
-    state.timer = setInterval(() => {
+    const fn = () => {
         const game = loadGame();
         game.numSeconds += 1;
         saveGame(game);
 
         renderStars(game.numSeconds);
-    }, 1000);
+    };
+
+    fn();
+
+    state.timer = setInterval(fn, 1000);
 }
 
 function render(state) {
