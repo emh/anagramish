@@ -185,7 +185,7 @@ function calculateStats(history) {
 
         if ((k !== key() && (!game.finished) || game.numSeconds >= 240) && level > 0) {
             level--;
-        } else if (game.finished && game.numSeconds <= 120 && level < 100) {
+        } else if (game.finished && game.numSeconds <= 120 && level < 9) {
             level++;
         }
     });
@@ -309,7 +309,8 @@ function handleEnter(state) {
                 console.log(state.streak);
 
                 state.streak++;
-                state.level += (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0);
+                console.log(state.level, game.numSeconds, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0));
+                state.level += Math.min(9, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
 
                 game.finished = true;
                 game.words = state.words;
@@ -336,18 +337,20 @@ function setupKeyboardHandler(state) {
     div.addEventListener('click', (e) => {
         const key = e.target;
 
-        if (state.position.y < 5 && !key.classList.contains('disabled')) {
-            if (key.textContent === '⌫') {
-                handleBackspace(state);
-            } else if (key.textContent === '⏎') {
-                handleEnter(state);
-            } else if (key.textContent.length === 1) {
-                handleLetterInput(state, key.textContent);
-            } else if (key.textContent.startsWith('Flip')) {
-                handleFlip(state);
-            }
+        if ([...key.classList].includes('key')) {
+            if (state.position.y < 5 && !key.classList.contains('disabled')) {
+                if (key.textContent === '⌫') {
+                    handleBackspace(state);
+                } else if (key.textContent === '⏎') {
+                    handleEnter(state);
+                } else if (key.textContent.length === 1) {
+                    handleLetterInput(state, key.textContent);
+                } else if (key.textContent.startsWith('Flip')) {
+                    handleFlip(state);
+                }
 
-            renderBoard(state);
+                renderBoard(state);
+            }
         }
     });
 
