@@ -15,7 +15,9 @@ const putHistory = (history) => localStorage.setItem('history', JSON.stringify(h
 
 const isEmpty = (obj) => Object.keys(obj).length === 0;
 
-const numStars = (s) => 5 - Math.floor(s / 60);
+const numStars = (s) => Math.max(0, 5 - Math.floor(s / 60));
+
+const isFinished = (words) => words.every((w) => w.every((l) => l !== ' '));
 
 function loadGame() {
     const history = getHistory();
@@ -66,35 +68,47 @@ function renderLetter(letter, classes) {
 }
 
 function renderBoard(state) {
+    const flipped = state.flipped;
+
     const startWord = state.words[0];
     const endWord = state.words[5];
     const board = document.getElementById('board')
         
     board.innerHTML = '';
 
-    state.words.forEach((w, y) => w.forEach((l, x) => {
+    const words = flipped ? [...state.words].reverse() : state.words;
+
+    words.forEach((w, y) => w.forEach((l, x) => {
+        const actualY = flipped ? 5 - y : y;
+
         const colorClass = startWord.indexOf(l) !== -1 ? 'start' : endWord.indexOf(l) !== -1 ? 'end' : '';
-        const activeClass = x === state.position.x && y === state.position.y ? 'active' : '';
+        const activeClass = x === state.position.x && actualY === state.position.y && actualY < 5 ? 'active' : '';
 
         renderLetter(l, [colorClass, activeClass]);
     }));
 
-    if (state.position.y > 1 && state.position.y < 5) {
-        const el = document.createElement('div');
-        el.className = 'trash';
-        el.textContent = 'X';
-        el.style.left = '280px';
-        el.style.top = `${(state.position.y - 1) * 55 + 8}px`;
+    if (!isFinished(state.words)) {
+        if ((!flipped && state.position.y > 1) || (flipped && state.position.y < 4)) {
+            const previousY = state.flipped ? state.position.y + 1 : state.position.y - 1;
 
-        el.addEventListener('click', () => {
-            state.words[state.position.y] = '     '.split('');
-            state.position.y -= 1;
-            state.words[state.position.y] = '     '.split('');
+            if (state.words[previousY][0] !== ' ') {
+                const el = document.createElement('div');
+                el.className = 'trash';
+                el.textContent = '🗑️';
+                el.style.left = '280px';
+                el.style.top = `${(state.flipped ? 5 - previousY : previousY) * 55 + 8}px`;
 
-            renderBoard(state);
-        });
-        
-        board.appendChild(el);
+                el.addEventListener('click', () => {
+                    state.words[state.position.y] = '     '.split('');
+                    state.position.y -= state.flipped ? -1 : 1;
+                    state.words[state.position.y] = '     '.split('');
+
+                    renderBoard(state);
+                });
+
+                board.appendChild(el);
+            }
+        }
     }
 }
 
@@ -117,10 +131,25 @@ function renderRow(keys, letters) {
     document.getElementById('keyboard').appendChild(div);
 }
 
+function renderFlip() {
+    const div = document.createElement('div');
+
+    div.className = 'flip';
+
+    const el = document.createElement('div');
+    el.className = `key`;
+    el.textContent = 'Flip ⇵';
+    div.appendChild(el);
+
+    document.getElementById('keyboard').appendChild(div);
+}
+
 function renderKeyboard(words) {
     const letters = [...words[0], ...words[5], '⌫', '⏎'];
 
     document.getElementById('keyboard').innerHTML = '';
+
+    renderFlip();
 
     renderRow(row1, letters);
     renderRow(row2, letters);
@@ -148,15 +177,13 @@ function calculateStats(history) {
     keys.sort().forEach((k) => {
         const game = history[k];
 
-        if (k !== key()) {
-            if (!game.finished) {
-                streak = 0;
-            } else {
-                streak++;
-            }
+        if (!game.finished && k !== key()) {
+            streak = 0;
+        } else if (game.finished) {
+            streak++;
         }
 
-        if ((!game.finished || game.numSeconds >= 240) && level > 0) {
+        if ((k !== key() && (!game.finished) || game.numSeconds >= 240) && level > 0) {
             level--;
         } else if (game.finished && game.numSeconds <= 120 && level < 100) {
             level++;
@@ -258,28 +285,32 @@ function handleEnter(state) {
     if (state.position.x === 5 && state.position.y < 5) {
         const y = state.position.y;
         const word = state.words[y].join('');
-        const previousWord = state.words[y-1].join('');
-        const firstWord = state.words[0].join('');
-        const lastWord = state.words[5].join('');
+        const previousWord = state.words[state.flipped ? y + 1 : y - 1].join('');
+        const firstWord = state.words[state.flipped ? 5 : 0].join('');
+        const lastWord = state.words[state.flipped ? 0 : 5].join('');
 
         if (!state.dict.includes(word)) {
             showError('Not a word.', y);
         } else if (compareWords(word, previousWord) !== 4) {
             showError('You must change only 1 letter from the previous word.');
-        } else if (compareWords(word, firstWord) !== (5 - y) || compareWords(word, lastWord) !== y) {
+        } else if (compareWords(word, firstWord) !== (state.flipped ? y : 5 - y) || compareWords(word, lastWord) !== (state.flipped ? 5 - y : y)) {
             showError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
         } else {
-            state.position.y += 1;
+            state.position.y += state.flipped ? -1 : 1;
             state.position.x = 0;
 
-            if (y === 4) {
+            if (isFinished(state.words)) {
                 if (state.timer) {
                     clearInterval(state.timer);
                 }
 
-                state.streak++;
-
                 const game = loadGame();
+
+                console.log(state.streak);
+
+                state.streak++;
+                state.level += (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0);
+
                 game.finished = true;
                 game.words = state.words;
                 saveGame(game);
@@ -288,6 +319,15 @@ function handleEnter(state) {
             }
         }
     }
+}
+
+const emptyWord = (word) => word.join('') === '     ';
+
+function handleFlip(state) {
+    state.flipped = !state.flipped;
+    state.words[state.position.y] = '     '.split('');
+    state.position.x = 0;
+    state.position.y = state.flipped ? state.words.findLastIndex(emptyWord) : state.words.findIndex(emptyWord);
 }
 
 function setupKeyboardHandler(state) {
@@ -303,6 +343,8 @@ function setupKeyboardHandler(state) {
                 handleEnter(state);
             } else if (key.textContent.length === 1) {
                 handleLetterInput(state, key.textContent);
+            } else if (key.textContent.startsWith('Flip')) {
+                handleFlip(state);
             }
 
             renderBoard(state);
@@ -411,7 +453,6 @@ function startClock(state) {
         saveGame(game);
 
         renderStars(game.numSeconds);
-        console.log('tick');
     }, 1000);
 }
 

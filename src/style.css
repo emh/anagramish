@@ -235,6 +235,16 @@ html, body, #app {
   box-sizing: border-box;
 }
 
+#keyboard .flip {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+#keyboard .flip .key {
+  width: 90px;
+}
+
 #keyboard .control {
   width: 45px;
 }
@@ -253,7 +263,7 @@ html, body, #app {
   top: 75px;
   left: 50%;
   transform: translate(-50%, 0);
-  width: 200px;
+  width: 300px;
   border: solid 1px red;
   padding: 10px;
   color: red;
@@ -269,7 +279,7 @@ html, body, #app {
   top: 75px;
   left: 50%;
   transform: translate(-50%, 0);
-  width: 200px;
+  width: 300px;
   padding: 10px;
   border: solid 1px green;
   color: green;
