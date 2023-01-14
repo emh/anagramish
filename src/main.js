@@ -442,10 +442,15 @@ function renderStars(seconds) {
 
     div.innerHTML = '';
 
-    if (n >= 1) {
-        const s = ('⭐'.repeat(n)).split('').map((s) => `<div>${s}</div>`).join('');
+    for (let i = 0; i < n; i++) {
+        const star = document.createElement('div');
+        star.textContent = '⭐';
 
-        div.innerHTML = s;
+        if (i === n - 1) {
+            star.style.opacity = 1 - (seconds % 60) / 60;
+        }
+
+        div.append(star);
     }
 }
 
