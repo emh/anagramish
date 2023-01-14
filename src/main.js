@@ -49,13 +49,27 @@ const checkCount = (pair, minCount, maxCount) => {
     return count >= minCount && count <= maxCount;
 }
 
+const calcIndex = (n) => {
+    var d = new Date();
+    d.setUTCHours(0, 0, 0, 0);
+
+    const f = Math.PI - 3; // need a number > 0 and < 1
+    const s = d.valueOf() / 1000;
+    const r = (s * f) - Math.floor(s * f);
+    const i = Math.floor(n * r);
+
+    return i;
+}
+
 function choosePair(pairs, level) {
     const maxCount = countForLevel(level);
     const minCount = countForLevel(level + 1);
 
     const filteredPairs = pairs.filter((pair) => checkCount(pair, minCount, maxCount));
+    const n = filteredPairs.length;
+    const i = calcIndex(n);
 
-    return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
+    return filteredPairs[i];
 }
 
 function renderLetter(letter, classes) {
@@ -306,10 +320,7 @@ function handleEnter(state) {
 
                 const game = loadGame();
 
-                console.log(state.streak);
-
                 state.streak++;
-                console.log(state.level, game.numSeconds, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0));
                 state.level += Math.min(9, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
 
                 game.finished = true;
