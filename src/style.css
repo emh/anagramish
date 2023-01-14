@@ -248,25 +248,33 @@ html, body, #app {
   margin-left: 10px;
 }
 
-#error {
+.error {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 200px;
   border: solid 1px red;
   padding: 10px;
-  margin: 10px;
   color: red;
   font-size: 20px;
-  display:none;
-  max-width: 200px;
+  background-color: white;
   text-align: center;
 }
 
-#success {
-  border: solid 1px green;
+.success {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 200px;
   padding: 10px;
-  margin: 10px;
+  border: solid 1px green;
   color: green;
   font-size: 20px;
-  display: none;
-  max-width: 200px;
+  background-color: white;
   text-align: center;
 }
 
@@ -274,4 +282,33 @@ html, body, #app {
   position: absolute;
   font-size: 30px;
   cursor: pointer;
+}
+
+.popup {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  top: 75px;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 300px;
+  padding: 10px;
+  border: solid 1px black;
+  background-color: white;
+  text-align: center;
+}
+
+.popup div, .success div {
+  flex: 1;
+}
+
+.popup button {
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+#stars {
+  display: flex;
+  gap: 10px;
+  font-size: 40px;
 }

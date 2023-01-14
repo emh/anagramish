@@ -7,27 +7,51 @@ import { compareWords, isLetter } from './words.mjs';
 
 const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
-function parse(pairs) {
-    return pairs.map((pair) => pair.split(','));
+const key = () => new Date().toLocaleDateString("en-CA");
+
+const getHistory = () => JSON.parse(localStorage.getItem('history')) ?? {};
+
+const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
+
+const isEmpty = (obj) => Object.keys(obj).length === 0;
+
+const numStars = (s) => 5 - Math.floor(s / 60);
+
+function loadGame() {
+    const history = getHistory();
+
+    return history[key()];
 }
 
-const checkLevel = (pair, level) => {
+function saveGame(game) {
+    const history = getHistory();
+
+    history[key()] = game;
+
+    putHistory(history);
+}
+
+function parse(pairs) {
+    return pairs.map((pair) => {
+        const pieces = pair.split(',');
+
+        return [pieces[0], pieces[1], Number(pieces[2])];
+    });
+}
+
+const countForLevel = (level) => level === 0 ? 10000 : Math.pow(2, 9 - level) * 10;
+
+const checkCount = (pair, minCount, maxCount) => {
     const count = pair[2];
 
-    switch (level) {
-        case 3:
-            return count < 10;
-        case 2:
-            return count >= 10 && count < 100;
-        case 1:
-            return count >= 100 && count < 1000;
-        default:
-            return count >= 1000;
-    }
+    return count >= minCount && count <= maxCount;
 }
 
 function choosePair(pairs, level) {
-    const filteredPairs = pairs.filter((pair) => checkLevel(pair, level));
+    const maxCount = countForLevel(level);
+    const minCount = countForLevel(level + 1);
+
+    const filteredPairs = pairs.filter((pair) => checkCount(pair, minCount, maxCount));
 
     return filteredPairs[Math.floor(Math.random() * filteredPairs.length)];
 }
@@ -103,9 +127,7 @@ function renderKeyboard(words) {
     renderRow(row3, letters);
 }
 
-function initWords(pairs, level) {
-    const pair = choosePair(pairs, level);
-
+function initWords(pair) {
     const words = [
         pair[0],
         '     ',
@@ -118,38 +140,60 @@ function initWords(pairs, level) {
     return words;
 }
 
-function init(pairs, dict) {
-    const level = 0;
+function calculateStats(history) {
+    let level = 0;
+    let streak = 0;
+    const keys = Object.keys(history);
 
-    const words = initWords(pairs, level);
+    keys.sort().forEach((k) => {
+        const game = history[k];
+
+        if (k !== key()) {
+            if (!game.finished) {
+                streak = 0;
+            } else {
+                streak++;
+            }
+        }
+
+        if ((!game.finished || game.numSeconds >= 240) && level > 0) {
+            level--;
+        } else if (game.finished && game.numSeconds <= 120 && level < 100) {
+            level++;
+        }
+    });
+
+    return { level, streak };
+}
+
+function initTodaysGame(pairs, level) {
+    const pair = choosePair(pairs, level);
 
     return {
-        pairs,
-        dict,
-        words,
-        level,
-        position: { x: 0, y: 1 }
+        pair,
+        numSeconds: 0
     };
 }
 
-function setupLevelButtons(state) {
-    const levelButtons = document.querySelectorAll('#levels button');
+function init(pairs, dict) {
+    const history = getHistory();
+    const { level, streak } = calculateStats(history);
+    let game = loadGame();
 
-    levelButtons.forEach((button) => button.addEventListener('click', (e) => {
-        const classList = e.target.classList;
+    if (!game) {
+        game = initTodaysGame(pairs, level);
+        saveGame(game);
+    }
 
-        if (classList.contains("zero")) state.level = 0;
-        if (classList.contains("one")) state.level = 1;
-        if (classList.contains("two")) state.level = 2;
-        if (classList.contains("three")) state.level = 3;
-
-        state.words = initWords(state.pairs, state.level);
-        state.position = { x: 0, y: 1 };
-
-        e.target.blur();
-
-        render(state);
-    }));
+    return {
+        dict,
+        level,
+        streak,
+        finished: game.finished,
+        words: game.finished ? game.words : initWords(game.pair),
+        position: { x: 0, y: 1 },
+        newUser: isEmpty(history)
+    };
 }
 
 function handleBackspace(state) {
@@ -167,23 +211,34 @@ function handleLetterInput(state, letter) {
     }
 }
 
-function renderError(message, y) {
-    const div = document.getElementById('error');
+function renderSuccess(state) {
+    const game = loadGame();
+    const n = numStars(game.numSeconds);
 
-    div.textContent = message;
-    div.style.display = 'block';
+    const app = document.getElementById('app');
+    const popup = document.createElement('div');
 
-    setTimeout(() => div.style.display = 'none', 2000);
-}
+    popup.className = "success";
 
-function renderSuccess() {
-    console.log('success');
-    const div = document.getElementById('success');
+    const ok = document.createElement('button');
+    const content = document.createElement('div');
 
-    div.textContent = 'You did it!';
-    div.style.display = 'block';
+    content.innerHTML = `
+        <p>You solved it!</p>
+        <p>You earned ${n} star${n !== 1 ? 's' : ''} and your streak is ${state.streak}.</p>
+        <p>You're at level ${state.level}</p>
+        <p>Come back tomorrow!</p>
+    `;
 
-    setTimeout(() => div.style.display = 'none', 2000);
+    ok.innerHTML = "Ok";
+
+    popup.append(content, ok);
+
+    ok.addEventListener('click', () => {
+        app.removeChild(popup);
+    });
+
+    app.appendChild(popup);
 }
 
 const nth = (n) => {
@@ -208,17 +263,28 @@ function handleEnter(state) {
         const lastWord = state.words[5].join('');
 
         if (!state.dict.includes(word)) {
-            renderError('Not a word!', y);
+            showError('Not a word.', y);
         } else if (compareWords(word, previousWord) !== 4) {
-            renderError('You must change only 1 letter from the previous word.');
+            showError('You must change only 1 letter from the previous word.');
         } else if (compareWords(word, firstWord) !== (5 - y) || compareWords(word, lastWord) !== y) {
-            renderError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
+            showError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
         } else {
             state.position.y += 1;
             state.position.x = 0;
 
             if (y === 4) {
-                renderSuccess();
+                if (state.timer) {
+                    clearInterval(state.timer);
+                }
+
+                state.streak++;
+
+                const game = loadGame();
+                game.finished = true;
+                game.words = state.words;
+                saveGame(game);
+
+                renderSuccess(state);
             }
         }
     }
@@ -257,7 +323,7 @@ function setupKeyboardHandler(state) {
                         if (state.words[0].includes(e.key) || state.words[5].includes(e.key)) {
                             handleLetterInput(state, e.key.toLowerCase());
                         } else {
-                            renderError('All letters must come from the first or last word');
+                            showError('All letters must come from the first or last word');
                         }
                     } else {
                         console.log(e.key);
@@ -269,9 +335,84 @@ function setupKeyboardHandler(state) {
     });
 }
 
+function showError(message) {
+    const app = document.getElementById('app');
+    const error = document.createElement('div');
+
+    error.className = 'error';
+    error.innerHTML = message;
+
+    app.append(error);
+
+    setTimeout(() => {
+        app.removeChild(error);
+    }, 2000);
+}
+
+function showPopup(state) {
+    return new Promise((resolve) => {
+        const app = document.getElementById('app');
+        const popup = document.createElement('div');
+
+        popup.className = "popup";
+
+        const ok = document.createElement('button');
+        const content = document.createElement('div');
+
+        if (state.newUser) {
+            content.innerHTML = `
+                Welcome to anagramish. Your goal is to find 4 words that complete 
+                the path from the top word to the bottom word. Each word has to use
+                4 letters from the word above it and 1 new letter from the word at
+                the bottom of the puzzle.
+            `;
+        } else {
+            content.innerHTML = `
+                <p>Welcome back, you're at level ${state.level} and your streak is currently ${state.streak}.</p>
+                <p>Good luck!</p>
+            `;
+        }
+
+        ok.innerHTML = "Start";
+
+        popup.append(content, ok);
+
+        ok.addEventListener('click', () => {                     
+            app.removeChild(popup);
+
+            resolve();
+        });
+
+        app.appendChild(popup);
+    });
+}
+
 function setupControls(state) {
-    setupLevelButtons(state);
     setupKeyboardHandler(state);
+}
+
+function renderStars(seconds) {
+    const div = document.getElementById('stars');
+    const n = numStars(seconds);
+
+    div.innerHTML = '';
+
+    if (n >= 1) {
+        const s = ('⭐'.repeat(n)).split('').map((s) => `<div>${s}</div>`).join('');
+
+        div.innerHTML = s;
+    }
+}
+
+function startClock(state) {
+    state.timer = setInterval(() => {
+        const game = loadGame();
+        game.numSeconds += 1;
+        saveGame(game);
+
+        renderStars(game.numSeconds);
+        console.log('tick');
+    }, 1000);
 }
 
 function render(state) {
@@ -279,12 +420,21 @@ function render(state) {
     renderKeyboard(state.words);
 }
 
-Promise.all([
-    loadFile(pairsFile),
-    loadFile(dictFile)
-]).then(([pairs, dict]) => {
+async function main() {
+    const pairs = await loadFile(pairsFile);
+    const dict = await loadFile(dictFile);
     const state = init(parse(pairs), dict);
 
     render(state);
-    setupControls(state);
-});
+
+    if (state.finished) {
+        renderSuccess(state);
+    } else {
+        showPopup(state).then(() => {
+            setupControls(state);
+            startClock(state);
+        });
+    }
+}
+
+main();
