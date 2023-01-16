@@ -158,6 +158,7 @@ html, body, #app {
   gap: 5px;
   box-sizing: border-box;
   cursor: pointer;
+  user-select: none;
 }
 
 .letter {
@@ -182,33 +183,6 @@ html, body, #app {
 
 .letter.active {
   border: solid 2px black;
-}
-
-#levels button {
-  background-color: white;
-  border: solid 1px black;
-  border-radius: 15px;
-  height: 30px;
-  width: 30px;
-  padding: 0;
-  color: black;
-}
-
-#levels button:hover {
-  filter: brightness(150%);
-  border: solid 1px gray;
-}
-
-#levels .one {
-  background-color: yellow;
-}
-
-#levels button.two {
-  background-color: orange;
-}
-
-#levels button.three {
-  background-color: red;
 }
 
 #keyboard {
@@ -255,7 +229,7 @@ html, body, #app {
   border: solid 1px lightgray;
 }
 
-#keyboard > div:nth-child(2) {
+#keyboard > div:nth-child(3) {
   margin-left: 10px;
 }
 
@@ -293,6 +267,18 @@ html, body, #app {
   position: absolute;
   font-size: 30px;
   cursor: pointer;
+}
+
+.enter, .backspace {
+  display: flex;
+  align-items: center;
+  justify-content: center;  position: absolute;
+  cursor: pointer;  
+  border: solid 1px black;
+  height: 50px;
+  width: 50px;
+  font-size: 40px;
+  box-sizing: border-box;
 }
 
 .popup {

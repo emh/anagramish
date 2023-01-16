@@ -81,6 +81,36 @@ function renderLetter(letter, classes) {
     document.getElementById('board').appendChild(div);
 }
 
+function renderTrash(y) {
+    const el = document.createElement('div');
+    el.className = 'trash';
+    el.textContent = '🗑️';
+    el.style.left = '280px';
+    el.style.top = `${y * 55 + 8}px`;
+
+    return el;
+}
+
+function renderBoardEnter(y) {
+    const el = document.createElement('div');
+    el.className = 'enter';
+    el.textContent = '⏎';
+    el.style.left = '330px';
+    el.style.top = `${y * 55}px`;
+
+    return el;
+}
+
+function renderBoardBackspace(x, y) {
+    const el = document.createElement('div');
+    el.className = 'backspace';
+    el.textContent = '⌫';
+    el.style.left = '275px';
+    el.style.top = `${y * 55}px`;
+
+    return el;
+}
+
 function renderBoard(state) {
     const flipped = state.flipped;
 
@@ -96,33 +126,29 @@ function renderBoard(state) {
         const actualY = flipped ? 5 - y : y;
 
         const colorClass = startWord.indexOf(l) !== -1 ? 'start' : endWord.indexOf(l) !== -1 ? 'end' : '';
-        const activeClass = x === state.position.x && actualY === state.position.y && actualY < 5 ? 'active' : '';
+        const activeClass = !state.finished && x === state.position.x && actualY === state.position.y && actualY < 5 ? 'active' : '';
 
         renderLetter(l, [colorClass, activeClass]);
     }));
 
-    if (!isFinished(state.words)) {
-        if ((!flipped && state.position.y > 1) || (flipped && state.position.y < 4)) {
-            const previousY = state.flipped ? state.position.y + 1 : state.position.y - 1;
+    if (state.finished) {
+        return;
+    }
 
-            if (state.words[previousY][0] !== ' ') {
-                const el = document.createElement('div');
-                el.className = 'trash';
-                el.textContent = '🗑️';
-                el.style.left = '280px';
-                el.style.top = `${(state.flipped ? 5 - previousY : previousY) * 55 + 8}px`;
+    if ((!flipped && state.position.y > 1) || (flipped && state.position.y < 4)) {
+        const previousY = state.flipped ? state.position.y + 1 : state.position.y - 1;
 
-                el.addEventListener('click', () => {
-                    state.words[state.position.y] = '     '.split('');
-                    state.position.y -= state.flipped ? -1 : 1;
-                    state.words[state.position.y] = '     '.split('');
-
-                    renderBoard(state);
-                });
-
-                board.appendChild(el);
-            }
+        if (state.words[previousY][0] !== ' ') {
+            board.append(renderTrash(state.flipped ? 5 - previousY : previousY));
         }
+    }
+
+    if (state.position.x === 5) {
+        board.append(renderBoardEnter(state.flipped ? 5 - state.position.y : state.position.y));
+    }
+
+    if (state.position.x > 0) {
+        board.append(renderBoardBackspace(state.position.x, state.flipped ? 5 - state.position.y : state.position.y));
     }
 }
 
@@ -322,6 +348,7 @@ function handleEnter(state) {
 
                 state.streak++;
                 state.level += Math.min(9, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
+                state.finished = true;
 
                 game.finished = true;
                 game.words = state.words;
@@ -331,6 +358,12 @@ function handleEnter(state) {
             }
         }
     }
+}
+
+function handleDeleteWord(state) {
+    state.words[state.position.y] = '     '.split('');
+    state.position.y -= state.flipped ? -1 : 1;
+    state.words[state.position.y] = '     '.split('');
 }
 
 const emptyWord = (word) => word.join('') === '     ';
@@ -347,6 +380,8 @@ function setupKeyboardHandler(state) {
 
     div.addEventListener('click', (e) => {
         const key = e.target;
+
+        if (state.finished) return;
 
         if ([...key.classList].includes('key')) {
             if (state.position.y < 5 && !key.classList.contains('disabled')) {
@@ -366,7 +401,7 @@ function setupKeyboardHandler(state) {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (state.position.y < 5) {
+        if (!state.finished) {
             switch (e.key) {
                 case 'Backspace':
                     handleBackspace(state);
@@ -388,6 +423,28 @@ function setupKeyboardHandler(state) {
 
             renderBoard(state);
         }
+    });
+}
+
+function setupBoardHandler(state) {
+    const div = document.getElementById('board');
+
+    div.addEventListener('click', (e) => {
+        const key = e.target;
+
+        if (state.finshed) return;
+
+        if (isLetter(key.textContent)) {
+            handleLetterInput(state, key.textContent);
+        } else if (key.textContent === '🗑️') {
+            handleDeleteWord(state);
+        } else if (key.textContent === '⏎') {
+            handleEnter(state);
+        } else if (key.textContent === '⌫') {
+            handleBackspace(state);
+        }
+
+        renderBoard(state);
     });
 }
 
@@ -446,6 +503,7 @@ function showPopup(state) {
 
 function setupControls(state) {
     setupKeyboardHandler(state);
+    setupBoardHandler(state);
 }
 
 function renderStars(seconds) {
