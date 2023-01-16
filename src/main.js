@@ -267,7 +267,7 @@ function renderSuccess(state) {
     content.innerHTML = `
         <p>You solved it!</p>
         <p>You earned ${n} star${n !== 1 ? 's' : ''} and your streak is ${state.streak}.</p>
-        <p>You're at level ${state.level}</p>
+        <p>You're at level ${state.level+1}</p>
         <p>Come back tomorrow!</p>
     `;
 
@@ -424,7 +424,8 @@ function showPopup(state) {
             `;
         } else {
             content.innerHTML = `
-                <p>Welcome back, you're at level ${state.level} and your streak is currently ${state.streak}.</p>
+                <p>Welcome back, you're at level ${state.level+1}.</p>
+                ${state.streak > 0 ? `<p>Your streak is currently ${state.streak}.</p>` : ''}
                 <p>Good luck!</p>
             `;
         }
