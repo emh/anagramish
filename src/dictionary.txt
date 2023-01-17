@@ -9869,6 +9869,7 @@ share
 shark
 sharn
 sharp
+shart
 shash
 shaul
 shave

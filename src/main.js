@@ -50,8 +50,7 @@ const checkCount = (pair, minCount, maxCount) => {
 }
 
 const calcIndex = (n) => {
-    var d = new Date();
-    d.setUTCHours(0, 0, 0, 0);
+    var d = Date.parse(key());
 
     const f = Math.PI - 3; // need a number > 0 and < 1
     const s = d.valueOf() / 1000;
