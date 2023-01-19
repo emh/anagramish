@@ -543,6 +543,7 @@ function render(state) {
 }
 
 async function main() {
+    console.log('main');
     const pairs = await loadFile(pairsFile);
     const dict = await loadFile(dictFile);
     const state = init(parse(pairs), dict);
