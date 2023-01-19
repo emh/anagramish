@@ -353,6 +353,11 @@ function handleEnter(state) {
                 game.words = state.words;
                 saveGame(game);
 
+                plausible('finish-game', {
+                    key: key(),
+                    time: game.numSeconds
+                });
+
                 renderSuccess(state);
             }
         }
@@ -553,6 +558,14 @@ async function main() {
         renderSuccess(state);
     } else {
         showPopup(state).then(() => {
+            plausible('start-game', {
+                key: key(),
+                startWord: state.words[0],
+                endWord: state.words[5],
+                level: state.level,
+                streak: state.streak,
+                newUser: state.newUser
+            });
             setupControls(state);
             startClock(state);
         });
