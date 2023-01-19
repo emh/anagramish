@@ -345,6 +345,15 @@ function handleEnter(state) {
 
                 const game = loadGame();
 
+                gtag('event', 'finish-game', {
+                    key: key(),
+                    startWord: state.words[0],
+                    endWord: state.words[5],
+                    level: state.level,
+                    streak: state.streak,
+                    numSeconds: game.numSeconds
+                });
+
                 state.streak++;
                 state.level += Math.min(9, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
                 state.finished = true;
@@ -553,6 +562,14 @@ async function main() {
         renderSuccess(state);
     } else {
         showPopup(state).then(() => {
+            gtag('event', 'start-game', {
+                key: key(),
+                startWord: state.words[0],
+                endWord: state.words[5],
+                level: state.level,
+                streak: state.streak,
+                newUser: state.newUser
+            });
             setupControls(state);
             startClock(state);
         });
