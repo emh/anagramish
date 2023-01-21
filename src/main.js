@@ -410,8 +410,10 @@ function setupKeyboardHandler(state) {
                     break;
                 default:
                     if (isLetter(e.key)) {
-                        if (state.words[0].includes(e.key) || state.words[5].includes(e.key)) {
-                            handleLetterInput(state, e.key.toLowerCase());
+                        const letter = e.key.toLowerCase();
+
+                        if (state.words[0].includes(letter) || state.words[5].includes(letter)) {
+                            handleLetterInput(state, letter);
                         } else {
                             showError('All letters must come from the first or last word');
                         }
