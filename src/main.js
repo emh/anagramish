@@ -270,7 +270,7 @@ function handleBackspace(state) {
 }
 
 function handleLetterInput(state, letter) {
-    if (state.position.x < 5) {
+    if (state.position.x < 5 && state.position.y > 0 && state.position.y < 5) {
         state.words[state.position.y][state.position.x] = letter;
         
         state.position.x = state.position.x + 1;
