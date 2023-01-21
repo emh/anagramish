@@ -145,6 +145,7 @@ html, body, #app {
   align-items: center;
   margin: 10px;
   gap: 10px;
+  user-select: none;
 }
 
 #middle {
@@ -158,7 +159,6 @@ html, body, #app {
   gap: 5px;
   box-sizing: border-box;
   cursor: pointer;
-  user-select: none;
 }
 
 .letter {
@@ -207,7 +207,6 @@ html, body, #app {
   font-size: 24px;
   text-transform: uppercase;
   box-sizing: border-box;
-  user-select: none;
 }
 
 #keyboard .flip {
