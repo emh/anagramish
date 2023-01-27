@@ -5,6 +5,8 @@ import dictFile from './dictionary.txt';
 
 import { compareWords, isLetter } from './words.mjs';
 
+import { ThemeManager } from './theme.js';
+
 const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
 const key = () => new Date().toLocaleDateString("en-CA");
@@ -116,7 +118,7 @@ function renderBoard(state) {
     const startWord = state.words[0];
     const endWord = state.words[5];
     const board = document.getElementById('board')
-        
+
     board.innerHTML = '';
 
     const words = flipped ? [...state.words].reverse() : state.words;
@@ -272,7 +274,7 @@ function handleBackspace(state) {
 function handleLetterInput(state, letter) {
     if (state.position.x < 5 && state.position.y > 0 && state.position.y < 5) {
         state.words[state.position.y][state.position.x] = letter;
-        
+
         state.position.x = state.position.x + 1;
     }
 }
@@ -548,6 +550,9 @@ async function main() {
     const pairs = await loadFile(pairsFile);
     const dict = await loadFile(dictFile);
     const state = init(parse(pairs), dict);
+
+    const themeManager = new ThemeManager();
+    window.themeManager = themeManager;
 
     render(state);
 
