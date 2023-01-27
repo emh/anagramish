@@ -296,7 +296,7 @@ function renderSuccess(state) {
         <p>Come back tomorrow!</p>
     `;
 
-    ok.innerHTML = "Ok";
+    ok.innerHTML = "OK";
 
     popup.append(content, ok);
 
