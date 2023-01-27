@@ -23,18 +23,15 @@ export class PopupMessage extends HTMLElement {
             }
 
             div {
-                border: solid 1px black;
                 padding: 10px;
                 color: var(--popup-color);
             }
 
             .error {
-                border: solid 1px red;
                 color: red;
             }
 
             .success {
-                border: solid 1px green;
                 color: green;
             }
         `;
