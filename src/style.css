@@ -1,10 +1,96 @@
 /* Opinionated CSS defaults based on:
-  ! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css 
+  ! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css
 */
 
+:root, html[data-theme="light"] {
+  --background-color: white;
+  --text-color: black;
+  --border-color: #aaa;
+  --button-border-radius: 9px;
+  --button-background-color: #e5fce0;
+
+  --header-background-color: transparent;
+  --h1-color: var(--text-color);
+
+  --popup-top: 95px;
+  --popup-background-color: white;
+  --popup-border-color: var(--border-color);
+  --popup-color: black;
+  --popup-border-radius: 6px;
+
+  --letter-color: var(--text-color);
+  --letter-color-start: var(--letter-color);
+  --letter-color-end: var(--letter-color);
+
+  --letter-border-radius: 3px;
+
+  --letter-background-color: #f5f5f5;
+  --letter-background-color-start: #c0f8a8;
+  --letter-border-color-start: #7ab95e;
+  --letter-background-color-end: #81dbf3;
+  --letter-border-color-end: #4e8d9e;
+  --letter-background-color-active: #eee;
+
+  --letter-border-color-active: black;
+
+  --action-color: var(--text-color);
+  --action-background-color: var(--letter-background-color);
+  --action-border-color: var(--border-color);
+
+  --key-background-color: white;
+  --key-color: var(--text-color);
+  --key-border-color: var(--border-color);
+  --key-disabled-background-color: var(--key-background-color);
+  --key-disabled-color: lightgray;
+}
+
+[data-theme="classic"] {
+  --background-color: white;
+  --border-color: black;
+  --button-border-radius: 0;
+  --button-background-color: white;
+  --letter-border-radius: 0;
+  --letter-background-color: white;
+  --letter-background-color-active: var(--letter-background-color);
+  --letter-background-color-start: lightyellow;
+  --letter-background-color-end: lightcoral;
+  --letter-border-color-start: var(--border-color);
+  --letter-border-color-end: var(--border-color);
+  --popup-border-radius: 0;
+}
+
+html[data-theme="dark"] {
+  --background-color: #222;
+  --border-color: #aaa;
+  --text-color: white;
+
+  --header-background-color: #2a2a2a;
+  --h1-color: #bbb;
+
+  --button-background-color: #666;
+
+  --letter-background-color: #444;
+  --letter-box-shadow-start: 0 0 20px rgba(192, 248, 168, 0.3);
+  --letter-color-start: black;
+  --letter-color-end: black;
+  --letter-box-shadow-end: 0 0 20px rgba(129, 219, 243, 0.3);
+
+  --letter-border-color-active: white;
+  --letter-background-color-active: #777;
+
+  --popup-color: white;
+  --popup-background-color: #333;
+  --popup-border-color: #555;
+
+  --key-background-color: #555;
+  --key-color: var(--text-color);
+  --key-disabled-color: #666;
+  --key-disabled-background-color: #444;
+}
+
 html {
-  line-height: 1.2; 
-  -webkit-text-size-adjust: 100%; 
+  line-height: 1.2;
+  -webkit-text-size-adjust: 100%;
 }
 
 html, * {
@@ -13,22 +99,24 @@ html, * {
 
 body {
   margin: 0;
+  background-color: var(--background-color);
 }
 
 h1 {
   font-size: 2em;
   margin: 0.67em 0;
+  color: var(--h1-color);
 }
 
 hr {
-  box-sizing: content-box; 
-  height: 0; 
-  overflow: visible; 
+  box-sizing: content-box;
+  height: 0;
+  overflow: visible;
 }
 
 pre {
-  font-family: monospace, monospace; 
-  font-size: 1em; 
+  font-family: monospace, monospace;
+  font-size: 1em;
 }
 
 b, strong {
@@ -36,7 +124,7 @@ b, strong {
 }
 
 code, kbd, samp {
-  font-family: monospace, monospace; 
+  font-family: monospace, monospace;
   font-size: 1em;
 }
 
@@ -60,13 +148,13 @@ sup {
 }
 
 button, input, optgroup, select, textarea {
-  font-family: inherit; 
-  font-size: 100%; 
-  line-height: 1.15; 
-  margin: 0; 
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
 }
 
-button, select { 
+button, select {
   text-transform: none;
 }
 
@@ -101,7 +189,7 @@ progress {
 
 [type="search"] {
   -webkit-appearance: textfield;
-  outline-offset: -2px; 
+  outline-offset: -2px;
 }
 
 [type="search"]::-webkit-search-decoration {
@@ -109,8 +197,8 @@ progress {
 }
 
 ::-webkit-file-upload-button {
-  -webkit-appearance: button; 
-  font: inherit; 
+  -webkit-appearance: button;
+  font: inherit;
 }
 
 [hidden] {
@@ -129,12 +217,15 @@ html, body, #app {
 #header {
   display: flex;
   align-items: center;
-  border-bottom: solid 1px black;
+  background-color: var(--header-background-color);
+  border-bottom: solid 1px var(--h1-color);
   padding: 10px;
+  margin-bottom: 10px;
 }
 
 #header h1 {
   flex: 1;
+  text-align: center;
   margin: 0;
 }
 
@@ -165,24 +256,35 @@ html, body, #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: solid 1px black;
+  color: var(--letter-color);
+  border: solid 1px var(--border-color);
+  background-color: var(--letter-background-color);
+  border-radius: var(--letter-border-radius);
   height: 50px;
   width: 50px;
   font-size: 40px;
   text-transform: uppercase;
   box-sizing: border-box;
+  box-shadow: var(--letter-box-shadow);
 }
 
 .letter.start {
-  background-color: lightyellow;
+  background-color: var(--letter-background-color-start);
+  border-color: var(--letter-border-color-start);
+  color: var(--letter-color-start);
+  box-shadow: var(--letter-box-shadow-start);
 }
 
 .letter.end {
-  background-color: lightcoral;
+  background-color: var(--letter-background-color-end);
+  border-color: var(--letter-border-color-end);
+  color: var(--letter-color-end);
+  box-shadow: var(--letter-box-shadow-end);
 }
 
 .letter.active {
-  border: solid 2px black;
+  border: solid 2px var(--letter-border-color-active);
+  background-color: var(--letter-background-color-active);
 }
 
 #keyboard {
@@ -201,7 +303,10 @@ html, body, #app {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: solid 1px black;
+  border: solid 1px var(--key-border-color);
+  border-radius: var(--letter-border-radius);
+  background-color: var(--key-background-color);
+  color: var(--key-color);
   height: 40px;
   width: 40px;
   font-size: 24px;
@@ -216,7 +321,9 @@ html, body, #app {
 }
 
 #keyboard .flip .key {
-  width: 90px;
+  width: 100px;
+  border-radius: var(--letter-border-radius);
+  font-size: 1.4rem;
 }
 
 #keyboard .control {
@@ -224,7 +331,8 @@ html, body, #app {
 }
 
 #keyboard .disabled {
-  color: lightgray;
+  background-color: var(--key-disabled-background-color);
+  color: var(--key-disabled-color);
   border: solid 1px lightgray;
 }
 
@@ -232,9 +340,61 @@ html, body, #app {
   margin-left: 10px;
 }
 
+.trash { 
+  position: absolute;
+  font-size: 30px;
+  cursor: pointer;
+}
+
+.enter, .backspace {
+  display: flex;
+  align-items: center;
+  background-color: var(--action-background-color);
+  justify-content: center;  position: absolute;
+  cursor: pointer;  
+  border: solid 1px var(--action-border-color);
+  color: var(--action-color);
+  height: 50px;
+  width: 50px;
+  font-size: 40px;
+  box-sizing: border-box;
+}
+
+.popup {
+  color: var(--popup-color);
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  top: var(--popup-top);
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: 300px;
+  padding: 10px;
+  border: solid 1px var(--popup-border-color);
+  border-radius: var(--popup-border-radius);
+  background-color: var(--popup-background-color);
+  text-align: center;
+  box-shadow: 1px 1px 10px rgba(0, 0, 0, 0.25);
+}
+
+.popup div, .success div {
+  flex: 1;
+}
+
+.popup button {
+  margin-top: 10px;
+  font-size: 18px;
+  text-transform: uppercase;
+  padding: 6px 0;
+  border: solid 1px var(--border-color);
+  border-radius: var(--button-border-radius);
+  background-color: var(--button-background-color);
+  cursor: pointer;
+}
+
 .error {
   position: fixed;
-  top: 75px;
+  top: var(--popup-top);
   left: 50%;
   transform: translate(-50%, 0);
   width: 300px;
@@ -250,7 +410,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   position: fixed;
-  top: 75px;
+  top: var(--popup-top);
   left: 50%;
   transform: translate(-50%, 0);
   width: 300px;
@@ -262,46 +422,6 @@ html, body, #app {
   text-align: center;
 }
 
-.trash { 
-  position: absolute;
-  font-size: 30px;
-  cursor: pointer;
-}
-
-.enter, .backspace {
-  display: flex;
-  align-items: center;
-  justify-content: center;  position: absolute;
-  cursor: pointer;  
-  border: solid 1px black;
-  height: 50px;
-  width: 50px;
-  font-size: 40px;
-  box-sizing: border-box;
-}
-
-.popup {
-  position: fixed;
-  display: flex;
-  flex-direction: column;
-  top: 75px;
-  left: 50%;
-  transform: translate(-50%, 0);
-  width: 300px;
-  padding: 10px;
-  border: solid 1px black;
-  background-color: white;
-  text-align: center;
-}
-
-.popup div, .success div {
-  flex: 1;
-}
-
-.popup button {
-  margin-top: 10px;
-  font-size: 20px;
-}
 
 #stars {
   display: flex;

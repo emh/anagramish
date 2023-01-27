@@ -5,6 +5,8 @@ import dictFile from './dictionary.txt';
 
 import { compareWords, isLetter } from './words.mjs';
 
+import { ThemeManager } from './theme.js';
+
 const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
 const key = () => new Date().toLocaleDateString("en-CA");
@@ -116,7 +118,7 @@ function renderBoard(state) {
     const startWord = state.words[0];
     const endWord = state.words[5];
     const board = document.getElementById('board')
-        
+
     board.innerHTML = '';
 
     const words = flipped ? [...state.words].reverse() : state.words;
@@ -272,7 +274,7 @@ function handleBackspace(state) {
 function handleLetterInput(state, letter) {
     if (state.position.x < 5 && state.position.y > 0 && state.position.y < 5) {
         state.words[state.position.y][state.position.x] = letter;
-        
+
         state.position.x = state.position.x + 1;
     }
 }
@@ -284,7 +286,7 @@ function renderSuccess(state) {
     const app = document.getElementById('app');
     const popup = document.createElement('div');
 
-    popup.className = "success";
+    popup.className = "popup success";
 
     const ok = document.createElement('button');
     const content = document.createElement('div');
@@ -296,7 +298,7 @@ function renderSuccess(state) {
         <p>Come back tomorrow!</p>
     `;
 
-    ok.innerHTML = "Ok";
+    ok.innerHTML = "OK";
 
     popup.append(content, ok);
 
@@ -453,7 +455,7 @@ function showError(message) {
     const app = document.getElementById('app');
     const error = document.createElement('div');
 
-    error.className = 'error';
+    error.className = 'popup error';
     error.innerHTML = message;
 
     app.append(error);
@@ -482,7 +484,7 @@ function showPopup(state) {
             `;
         } else {
             content.innerHTML = `
-                <p>Welcome back, you're at level ${state.level+1}.</p>
+                <p>Welcome back. You're at level ${state.level+1}.</p>
                 ${state.streak > 0 ? `<p>Your streak is currently ${state.streak}.</p>` : ''}
                 <p>Good luck!</p>
             `;
@@ -548,6 +550,9 @@ async function main() {
     const pairs = await loadFile(pairsFile);
     const dict = await loadFile(dictFile);
     const state = init(parse(pairs), dict);
+
+    const themeManager = new ThemeManager();
+    window.themeManager = themeManager;
 
     render(state);
 
