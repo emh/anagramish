@@ -482,7 +482,7 @@ function showPopup(state) {
             `;
         } else {
             content.innerHTML = `
-                <p>Welcome back, you're at level ${state.level+1}.</p>
+                <p>Welcome back. You're at level ${state.level+1}.</p>
                 ${state.streak > 0 ? `<p>Your streak is currently ${state.streak}.</p>` : ''}
                 <p>Good luck!</p>
             `;
