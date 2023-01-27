@@ -1,25 +1,17 @@
 'use strict';
 
-import pairsFile from './pairs.txt';
-import dictFile from './dictionary.txt';
-
-import { compareWords, isLetter } from './words.mjs';
-
 import { ThemeManager } from './theme.js';
 
-const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
+import { VirtualKeyboard } from './virtual-keyboard.mjs';
+import { GameBoard } from './game-board.mjs';
+import { GameStars } from './game-stars.mjs';
 
-const key = () => new Date().toLocaleDateString("en-CA");
+import { compareWords, isLetter } from './words.mjs';
+import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished } from './utils.mjs';
 
-const getHistory = () => JSON.parse(localStorage.getItem('history')) ?? {};
-
-const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
-
-const isEmpty = (obj) => Object.keys(obj).length === 0;
-
-const numStars = (s) => Math.max(0, 5 - Math.floor(s / 60));
-
-const isFinished = (words) => words.every((w) => w.every((l) => l !== ' '));
+import pairsFile from './pairs.txt';
+import dictFile from './dictionary.txt';
+import { PopupMessage } from './popup-message.mjs';
 
 function loadGame() {
     const history = getHistory();
@@ -73,128 +65,34 @@ function choosePair(pairs, level) {
     return filteredPairs[i];
 }
 
-function renderLetter(letter, classes) {
-    const div = document.createElement('div');
-
-    div.className = ['letter', ...classes].join(' ');
-    div.textContent = letter;
-
-    document.getElementById('board').appendChild(div);
-}
-
-function renderTrash(y) {
-    const el = document.createElement('div');
-    el.className = 'trash';
-    el.textContent = '🗑️';
-    el.style.left = '280px';
-    el.style.top = `${y * 55 + 8}px`;
-
-    return el;
-}
-
-function renderBoardEnter(y) {
-    const el = document.createElement('div');
-    el.className = 'enter';
-    el.textContent = '⏎';
-    el.style.left = '330px';
-    el.style.top = `${y * 55}px`;
-
-    return el;
-}
-
-function renderBoardBackspace(x, y) {
-    const el = document.createElement('div');
-    el.className = 'backspace';
-    el.textContent = '⌫';
-    el.style.left = '275px';
-    el.style.top = `${y * 55}px`;
-
-    return el;
-}
-
 function renderBoard(state) {
-    const flipped = state.flipped;
+    const container = document.getElementById('board');
+    const gameBoard = new GameBoard(state);
 
-    const startWord = state.words[0];
-    const endWord = state.words[5];
-    const board = document.getElementById('board')
+    container.innerHTML = '';    
+    container.append(gameBoard);
 
-    board.innerHTML = '';
-
-    const words = flipped ? [...state.words].reverse() : state.words;
-
-    words.forEach((w, y) => w.forEach((l, x) => {
-        const actualY = flipped ? 5 - y : y;
-
-        const colorClass = startWord.indexOf(l) !== -1 ? 'start' : endWord.indexOf(l) !== -1 ? 'end' : '';
-        const activeClass = !state.finished && x === state.position.x && actualY === state.position.y && actualY < 5 ? 'active' : '';
-
-        renderLetter(l, [colorClass, activeClass]);
-    }));
-
-    if (state.finished) {
-        return;
-    }
-
-    if ((!flipped && state.position.y > 1) || (flipped && state.position.y < 4)) {
-        const previousY = state.flipped ? state.position.y + 1 : state.position.y - 1;
-
-        if (state.words[previousY][0] !== ' ') {
-            board.append(renderTrash(state.flipped ? 5 - previousY : previousY));
-        }
-    }
-
-    if (state.position.x === 5) {
-        board.append(renderBoardEnter(state.flipped ? 5 - state.position.y : state.position.y));
-    }
-
-    if (state.position.x > 0) {
-        board.append(renderBoardBackspace(state.position.x, state.flipped ? 5 - state.position.y : state.position.y));
-    }
+    setupBoardHandler(state);
 }
 
-const row1 = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'];
-const row2 = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-const row3 = ['⏎', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '⌫'];
+function renderKeyboard(state) {
+    const container = document.getElementById('keyboard');
+    const validLetters = [...state.words[0], ...state.words[5]];
 
-function renderRow(keys, letters) {
-    const div = document.createElement('div');
+    const control = (value) => ({ value, control: true });
+    const letter = (value) => ({ value, disabled: !validLetters.includes(value) });
+    const keys = [
+        [control('Flip ⇵')],
+        [],
+        ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'].map(letter),
+        ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'].map(letter),
+        [control('⏎'), ...['z', 'x', 'c', 'v', 'b', 'n', 'm'].map(letter), control('⌫')]
+    ];
 
-    keys.forEach((key) => {
-        const el = document.createElement('div');
-        const disabled = key.length === 1 && !letters.includes(key);
-        const control = key === '⌫' || key === '⏎';
-        el.className = `key${disabled ? ' disabled' : ''}${control ? ' control' : ''}`;
-        el.textContent = key;
-        div.appendChild(el);
-    })
+    const keyboard = new VirtualKeyboard(keys);
 
-    document.getElementById('keyboard').appendChild(div);
-}
-
-function renderFlip() {
-    const div = document.createElement('div');
-
-    div.className = 'flip';
-
-    const el = document.createElement('div');
-    el.className = `key`;
-    el.textContent = 'Flip ⇵';
-    div.appendChild(el);
-
-    document.getElementById('keyboard').appendChild(div);
-}
-
-function renderKeyboard(words) {
-    const letters = [...words[0], ...words[5], '⌫', '⏎'];
-
-    document.getElementById('keyboard').innerHTML = '';
-
-    renderFlip();
-
-    renderRow(row1, letters);
-    renderRow(row2, letters);
-    renderRow(row3, letters);
+    container.innerHTML = '';
+    container.append(keyboard);
 }
 
 function initWords(pair) {
@@ -254,6 +152,7 @@ function init(pairs, dict) {
     }
 
     return {
+        started: false,
         dict,
         level,
         streak,
@@ -279,33 +178,27 @@ function handleLetterInput(state, letter) {
     }
 }
 
-function renderSuccess(state) {
+function showSuccess(state) {
     const game = loadGame();
     const n = numStars(game.numSeconds);
-
-    const app = document.getElementById('app');
-    const popup = document.createElement('div');
-
-    popup.className = "popup success";
-
-    const ok = document.createElement('button');
-    const content = document.createElement('div');
-
-    content.innerHTML = `
+    
+    const message = `
         <p>You solved it!</p>
         <p>You earned ${n} star${n !== 1 ? 's' : ''} and your streak is ${state.streak}.</p>
         <p>You're at level ${state.level+1}</p>
         <p>Come back tomorrow!</p>
+        <button>OK</button>
     `;
 
-    ok.innerHTML = "OK";
+    const app = document.getElementById('app');
+    const popup = new PopupMessage('success');
+    const div = document.createElement('div');
 
-    popup.append(content, ok);
-
-    ok.addEventListener('click', () => {
-        app.removeChild(popup);
-    });
-
+    div.setAttribute('id', 'popup');
+    div.setAttribute('slot', 'content');
+    div.innerHTML = message;
+    popup.addEventListener('buttonClick', () => app.removeChild(popup));
+    popup.append(div);
     app.appendChild(popup);
 }
 
@@ -355,7 +248,7 @@ function handleEnter(state) {
                 game.words = state.words;
                 saveGame(game);
 
-                renderSuccess(state);
+                showSuccess(state);
             }
         }
     }
@@ -377,27 +270,25 @@ function handleFlip(state) {
 }
 
 function setupKeyboardHandler(state) {
-    const div = document.getElementById('keyboard');
+    const keyboard = document.querySelector('virtual-keyboard');
 
-    div.addEventListener('click', (e) => {
-        const key = e.target;
+    keyboard.addEventListener('keypress', (event) => {
+        const key = event.detail.key;
 
         if (state.finished) return;
 
-        if ([...key.classList].includes('key')) {
-            if (state.position.y < 5 && !key.classList.contains('disabled')) {
-                if (key.textContent === '⌫') {
-                    handleBackspace(state);
-                } else if (key.textContent === '⏎') {
-                    handleEnter(state);
-                } else if (key.textContent.length === 1) {
-                    handleLetterInput(state, key.textContent);
-                } else if (key.textContent.startsWith('Flip')) {
-                    handleFlip(state);
-                }
-
-                renderBoard(state);
+        if (state.position.y < 5) {
+            if (key === '⌫') {
+                handleBackspace(state);
+            } else if (key === '⏎') {
+                handleEnter(state);
+            } else if (key.length === 1) {
+                handleLetterInput(state, key);
+            } else if (key.startsWith('Flip')) {
+                handleFlip(state);
             }
+
+            renderBoard(state);
         }
     });
 
@@ -430,34 +321,43 @@ function setupKeyboardHandler(state) {
 }
 
 function setupBoardHandler(state) {
-    const div = document.getElementById('board');
+    const div = document.querySelector('game-board');
 
-    div.addEventListener('click', (e) => {
-        const key = e.target;
+    div.addEventListener('letterPress', (event) => {
+        if (!state.started || state.finshed) return;
 
-        if (state.finshed) return;
+        const letter = event.detail.letter;
 
-        if (isLetter(key.textContent)) {
-            handleLetterInput(state, key.textContent);
-        } else if (key.textContent === '🗑️') {
-            handleDeleteWord(state);
-        } else if (key.textContent === '⏎') {
-            handleEnter(state);
-        } else if (key.textContent === '⌫') {
-            handleBackspace(state);
-        }
+        handleLetterInput(state, letter);
 
+        renderBoard(state);
+    });
+
+    div.addEventListener('enterPress', () => {
+        handleEnter(state);
+        renderBoard(state);
+    });
+
+    div.addEventListener('backspacePress', () => {
+        handleBackspace(state);
+        renderBoard(state);
+    });
+
+    div.addEventListener('trashPress', () => {
+        handleDeleteWord(state);
         renderBoard(state);
     });
 }
 
 function showError(message) {
     const app = document.getElementById('app');
-    const error = document.createElement('div');
+    const error = new PopupMessage('error');
 
-    error.className = 'popup error';
-    error.innerHTML = message;
+    const p = document.createElement('p');
+    p.setAttribute('slot', 'content');
+    p.textContent = message;
 
+    error.append(p);
     app.append(error);
 
     setTimeout(() => {
@@ -468,9 +368,10 @@ function showError(message) {
 function showPopup(state) {
     return new Promise((resolve) => {
         const app = document.getElementById('app');
-        const popup = document.createElement('div');
+        const popup = new PopupMessage();
 
-        popup.className = "popup";
+        const div = document.createElement('div');
+        div.setAttribute('slot', 'content');
 
         const ok = document.createElement('button');
         const content = document.createElement('div');
@@ -492,9 +393,12 @@ function showPopup(state) {
 
         ok.innerHTML = "Start";
 
-        popup.append(content, ok);
+        div.append(content, ok);
+        popup.append(div);
 
-        ok.addEventListener('click', () => {                     
+        popup.addEventListener('buttonClick', () => {      
+            state.started = true;
+
             app.removeChild(popup);
 
             resolve();
@@ -506,25 +410,14 @@ function showPopup(state) {
 
 function setupControls(state) {
     setupKeyboardHandler(state);
-    setupBoardHandler(state);
 }
 
 function renderStars(seconds) {
     const div = document.getElementById('stars');
-    const n = numStars(seconds);
-
+    const stars = new GameStars(seconds);
+    
     div.innerHTML = '';
-
-    for (let i = 0; i < n; i++) {
-        const star = document.createElement('div');
-        star.textContent = '⭐';
-
-        if (i === n - 1) {
-            star.style.opacity = 1 - (seconds % 60) / 60;
-        }
-
-        div.append(star);
-    }
+    div.append(stars);
 }
 
 function startClock(state) {
@@ -543,7 +436,7 @@ function startClock(state) {
 
 function render(state) {
     renderBoard(state);
-    renderKeyboard(state.words);
+    renderKeyboard(state);
 }
 
 async function main() {
@@ -557,7 +450,7 @@ async function main() {
     render(state);
 
     if (state.finished) {
-        renderSuccess(state);
+        showSuccess(state);
     } else {
         showPopup(state).then(() => {
             setupControls(state);
