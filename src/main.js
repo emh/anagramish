@@ -284,7 +284,7 @@ function renderSuccess(state) {
     const app = document.getElementById('app');
     const popup = document.createElement('div');
 
-    popup.className = "success";
+    popup.className = "popup success";
 
     const ok = document.createElement('button');
     const content = document.createElement('div');
@@ -453,7 +453,7 @@ function showError(message) {
     const app = document.getElementById('app');
     const error = document.createElement('div');
 
-    error.className = 'error';
+    error.className = 'popup error';
     error.innerHTML = message;
 
     app.append(error);
