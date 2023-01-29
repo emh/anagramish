@@ -33,4 +33,3 @@ export class GameStars extends HTMLElement {
 }
 
 customElements.define('game-stars', GameStars);
-

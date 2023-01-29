@@ -5,13 +5,14 @@ import { ThemeManager } from './theme.js';
 import { VirtualKeyboard } from './virtual-keyboard.mjs';
 import { GameBoard } from './game-board.mjs';
 import { GameStars } from './game-stars.mjs';
+import { PopupMessage } from './popup-message.mjs';
+import { PopupHelp } from './popup-help.mjs';
 
 import { compareWords, isLetter } from './words.mjs';
 import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished } from './utils.mjs';
 
 import pairsFile from './pairs.txt';
 import dictFile from './dictionary.txt';
-import { PopupMessage } from './popup-message.mjs';
 
 function loadGame() {
     const history = getHistory();
@@ -40,7 +41,7 @@ const countForLevel = (level) => level === 0 ? 10000 : Math.pow(2, 9 - level) * 
 const checkCount = (pair, minCount, maxCount) => {
     const count = pair[2];
 
-    return count >= minCount && count <= maxCount;
+    return count >= minCount && count < maxCount;
 }
 
 const calcIndex = (n) => {
@@ -55,8 +56,8 @@ const calcIndex = (n) => {
 }
 
 function choosePair(pairs, level) {
-    const maxCount = countForLevel(level);
-    const minCount = countForLevel(level + 1);
+    const maxCount = countForLevel(Math.floor(level / 2) * 2);
+    const minCount = level >= 8 ? 1 : countForLevel(Math.floor(level / 2) * 2 + 2);
 
     const filteredPairs = pairs.filter((pair) => checkCount(pair, minCount, maxCount));
     const n = filteredPairs.length;
@@ -178,16 +179,82 @@ function handleLetterInput(state, letter) {
     }
 }
 
+const emojiletters = {
+    a: '🇦',
+    b: '🇧',
+    c: '🇨',
+    d: '🇩',
+    e: '🇪',
+    f: '🇫',
+    g: '🇬',
+    h: '🇭',
+    i: '🇮',
+    j: '🇯',
+    k: '🇰',
+    l: '🇱',
+    m: '🇲',
+    n: '🇳',
+    o: '🇴',
+    p: '🇵',
+    q: '🇶',
+    r: '🇷',
+    s: '🇸',
+    t: '🇹',
+    u: '🇺',
+    v: '🇻',
+    w: '🇼',
+    x: '🇽',
+    y: '🇾',
+    z: '🇿',
+    black: '⬛',
+    yellow: '🟨',
+    star: '⭐'
+};
+
+function emojiWord(word) {
+    return word.map((letter) => emojiletters[letter]).join('\u200B');
+}
+
+function emojiLevel(level) {
+    const word = [];
+
+    for (let i = 0; i < 5; i++) {
+        word.push(i < level ? emojiletters.yellow : emojiletters.black);
+    }
+
+    return word.join('\u200B');
+}
+
+function emojiStars(n) {
+    const word = [];
+
+    for (let i = 0; i < n; i++) {
+        word.push(emojiletters.star);
+    }
+
+    return word.join('\u200B');
+}
+
 function showSuccess(state) {
     const game = loadGame();
     const n = numStars(game.numSeconds);
     
     const message = `
         <p>You solved it!</p>
-        <p>You earned ${n} star${n !== 1 ? 's' : ''} and your streak is ${state.streak}.</p>
-        <p>You're at level ${state.level+1}</p>
-        <p>Come back tomorrow!</p>
+        <p>You earned ${n} star${n !== 1 ? 's' : ''}<br/>
+        ${state.streak === 1 ? 'and you started a new streak' : `and your streak is ${state.streak}`}.</p>
+        <div>
+        ${emojiWord(state.words[0])}<br/>
+        ${emojiLevel(state.level)}<br/>
+        ${emojiStars(n)}<br/>
+        ${emojiWord(state.words[5])}
+        </div>
+        <p>Come back tomorrow to extend your streak!</p>
+        <p id="copied">Copied to clipboard.</p>
+        <div class="buttons">
+        <button>Share</button>
         <button>OK</button>
+        </div>
     `;
 
     const app = document.getElementById('app');
@@ -197,7 +264,27 @@ function showSuccess(state) {
     div.setAttribute('id', 'popup');
     div.setAttribute('slot', 'content');
     div.innerHTML = message;
-    popup.addEventListener('buttonClick', () => app.removeChild(popup));
+    popup.addEventListener('buttonClick', (e) => {
+        const { name } = e.detail;
+
+        if (name === 'Share') {
+            const share = [
+                'Anagramish by @emh',
+                emojiWord(state.words[0]),
+                emojiLevel(state.level),
+                emojiStars(n),
+                emojiWord(state.words[5]),
+                'http://anagramish.com'
+            ];
+            
+            const div = document.querySelector('#copied');
+            div.style.visibility = "visible";
+
+            navigator.clipboard.writeText(share.join('\n'));
+        } else {
+            app.removeChild(popup);
+        }
+    });
     popup.append(div);
     app.appendChild(popup);
 }
@@ -307,8 +394,6 @@ function setupKeyboardHandler(state) {
 
                         if (state.words[0].includes(letter) || state.words[5].includes(letter)) {
                             handleLetterInput(state, letter);
-                        } else {
-                            showError('All letters must come from the first or last word');
                         }
                     } else {
                         console.log(e.key);
@@ -363,6 +448,17 @@ function showError(message) {
     setTimeout(() => {
         app.removeChild(error);
     }, 2000);
+} 
+
+function showHelp() {
+    const app = document.getElementById('app');
+    const popup = new PopupHelp();
+
+    popup.addEventListener('buttonClick', (event) => {
+        app.removeChild(popup);
+    });
+
+    app.appendChild(popup);
 }
 
 function showPopup(state) {
@@ -372,44 +468,47 @@ function showPopup(state) {
 
         const div = document.createElement('div');
         div.setAttribute('slot', 'content');
-
-        const ok = document.createElement('button');
-        const content = document.createElement('div');
+        let message = '';
 
         if (state.newUser) {
-            content.innerHTML = `
-                Welcome to anagramish. Your goal is to find 4 words that complete 
-                the path from the top word to the bottom word. Each word has to use
-                4 letters from the word above it and 1 new letter from the word at
-                the bottom of the puzzle.
+            message = `
+                <p>Welcome to ANAGRAMISH.</p><p>Find the four words that connect the first word to the last.</p><p>Each word in between must use four letters from the word above it and 1 letter from the bottom word.</p>
             `;
         } else {
-            content.innerHTML = `
-                <p>Welcome back. You're at level ${state.level+1}.</p>
-                ${state.streak > 0 ? `<p>Your streak is currently ${state.streak}.</p>` : ''}
-                <p>Good luck!</p>
+            message = `
+                <p>Welcome back. You're at level ${Math.floor(state.level/2) + 1}.</p>
+                ${state.streak > 0 ?
+                    `<p>Your streak is currently ${state.streak}.</p>` :
+                    '<p>Starting a new streak today - come back daily to keep it going.'
+                }
             `;
         }
 
-        ok.innerHTML = "Start";
+        div.innerHTML = `
+            ${message}
+            <p>Good luck!</p>
+            <div class="buttons">
+                <button>Help</button>
+                <button>Start</button>
+            </div>
+        `;
 
-        div.append(content, ok);
         popup.append(div);
 
-        popup.addEventListener('buttonClick', () => {      
-            state.started = true;
-
-            app.removeChild(popup);
-
-            resolve();
+        popup.addEventListener('buttonClick', (event) => {
+            const { name } = event.detail;
+            
+            if (name === 'Start') {
+                app.removeChild(popup);
+                state.started = true;
+                resolve();
+            } else {
+                showHelp();
+            }
         });
 
         app.appendChild(popup);
     });
-}
-
-function setupControls(state) {
-    setupKeyboardHandler(state);
 }
 
 function renderStars(seconds) {
@@ -449,11 +548,14 @@ async function main() {
 
     render(state);
 
+    const help = document.getElementById('help');
+    help.addEventListener('click', showHelp);
+
     if (state.finished) {
         showSuccess(state);
     } else {
         showPopup(state).then(() => {
-            setupControls(state);
+            setupKeyboardHandler(state);
             startClock(state);
         });
     }

@@ -1,5 +1,5 @@
 export class GameBoard extends HTMLElement {
-    constructor(state) {
+    constructor(state, interactive=true) {
         super();
 
         const shadowRoot = this.attachShadow({ mode: 'open' });
@@ -10,12 +10,13 @@ export class GameBoard extends HTMLElement {
                 display: grid;
                 grid-template-rows: repeat(6, 1fr);
                 gap: 5px;
-                margin-left: 110px;
+                ${interactive ? 'margin-left: 110px;' : ''}
+                user-select: none;
             }
 
             .row {
                 display: grid;
-                grid-template-columns: repeat(7, 1fr);
+                grid-template-columns: repeat(${interactive ? 7 : 5}, 1fr);
                 gap: 5px;
             }
 
@@ -99,7 +100,7 @@ export class GameBoard extends HTMLElement {
                 row.append(cell);
             });
 
-            if (!state.finished) {
+            if (!state.finished && interactive) {
                 if (y === (state.flipped ? 5 - state.position.y : state.position.y)) {
                     if (state.position.x > 0) {
                         const key = document.createElement('div');
