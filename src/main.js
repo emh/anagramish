@@ -218,8 +218,10 @@ function emojiWord(word) {
 function emojiLevel(level) {
     const word = [];
 
+    const n = Math.floor(level / 2);
+
     for (let i = 0; i < 5; i++) {
-        word.push(i < level ? emojiletters.yellow : emojiletters.black);
+        word.push(i <= n ? emojiletters.yellow : emojiletters.black);
     }
 
     return word.join(' ');
