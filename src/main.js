@@ -212,7 +212,7 @@ const emojiletters = {
 };
 
 function emojiWord(word) {
-    return word.map((letter) => emojiletters[letter]).join('\u200B');
+    return word.map((letter) => emojiletters[letter]).join(' ');
 }
 
 function emojiLevel(level) {
@@ -222,7 +222,7 @@ function emojiLevel(level) {
         word.push(i < level ? emojiletters.yellow : emojiletters.black);
     }
 
-    return word.join('\u200B');
+    return word.join(' ');
 }
 
 function emojiStars(n) {
@@ -232,7 +232,7 @@ function emojiStars(n) {
         word.push(emojiletters.star);
     }
 
-    return word.join('\u200B');
+    return word.join(' ');
 }
 
 function showSuccess(state) {
@@ -280,8 +280,7 @@ function showSuccess(state) {
 
             const data = {
                 title: 'Anagramish',
-                text: share.join('\n'),
-                url: 'https://anagramish.com'
+                text: share.join('\n')
             };
             
             if (navigator.canShare && navigator.canShare(data)) {
