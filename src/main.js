@@ -274,13 +274,24 @@ function showSuccess(state) {
                 emojiLevel(state.level),
                 emojiStars(n),
                 emojiWord(state.words[5]),
-                'http://anagramish.com'
+                '',
+                'https://anagramish.com'
             ];
-            
-            const div = document.querySelector('#copied');
-            div.style.visibility = "visible";
 
-            navigator.clipboard.writeText(share.join('\n'));
+            const data = {
+                title: 'Anagramish',
+                text: share.join('\n'),
+                url: 'https://anagramish.com'
+            };
+            
+            if (navigator.canShare && navigator.canShare(data)) {
+                navigator.share(data);
+            } else {
+                const div = document.querySelector('#copied');
+                div.style.visibility = "visible";
+
+                navigator.clipboard.writeText(data.text);
+            }
         } else {
             app.removeChild(popup);
         }
