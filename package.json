@@ -10,7 +10,7 @@
     "prebuild": "shx rm -rf dist/*",
     "build": "node ./node_modules/parcel-bundler/bin/cli build ./src/index.html --public-url ./",
     "lint": "node ./node_modules/eslint/bin/eslint . --ext .js --fix",
-    "push-gh-pages": "push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
+    "push-gh-pages": "echo anagramish.com > ./dist/CNAME && push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
   },
   "repository": {
     "type": "git",
