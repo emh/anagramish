@@ -152,7 +152,7 @@ template.innerHTML = `
         .scroll {
             border: solid 1px var(--popup-border-color);
             border-radius: var(--popup-border-radius);
-            height: 300px;
+            height: 400px;
             overflow-y: scroll;
         }
 
