@@ -131,8 +131,6 @@ template.innerHTML = `
             left: 50%;
             transform: translate(-50%, 0);
             width: 350px;
-            height: 600px;
-            overflow-y: scroll;
             font-size: 20px;
             border: solid 1px var(--popup-border-color);
             border-radius: var(--popup-border-radius);
@@ -149,6 +147,13 @@ template.innerHTML = `
         div {
             padding: 10px;
             color: var(--popup-color);
+        }
+
+        .scroll {
+            border: solid 1px var(--popup-border-color);
+            border-radius: var(--popup-border-radius);
+            height: 300px;
+            overflow-y: scroll;
         }
 
         .center { text-align: center; }
@@ -169,24 +174,26 @@ template.innerHTML = `
     <div>
         <h1>ANAGRAMISH</h1>
         <p class="center">by <a target="_blank" href="http://twitter.com/emh">emh</a></p>
-        <h1>How to Play</h1>
-
-        <p>The game board has a start word and an end word.</p>
-        <div id="game-0"></div>
-        <p>Your goal is to find words that use 4 letters from the word above and 1 letter from the word at the bottom. In any order - like an anagram!</p>
-        <div id="game-1"></div>
-        <p>Repeat this until you've filled in all 4 words.</p>
-        <div id="game-2"></div>
-        <p>If you're stuck on a word you can try working the puzzle in the other direction by clicking the Flip button.</p>
-        <div id="game-3"></div>
-        <p>Now, same as before, find a word that uses 4 letters from the word above and 1 letter from the word at the bottom.</p>
-        <div id="game-4"></div>
-        <p>You win the game when you fill in the last word.</p>
-        <div id="game-5"></div>
-        <p>Your score is the number of stars still showing -- you lose a star for every minute you're working on the puzzle.</p>
-        <div class="footer">
+        
+        <div class="scroll">
+            <h1>How to Play</h1>
+            <p>The game board has a start word and an end word.</p>
+            <div id="game-0"></div>
+            <p>Your goal is to find words that use 4 letters from the word above and 1 letter from the word at the bottom. In any order - like an anagram!</p>
+            <div id="game-1"></div>
+            <p>Repeat this until you've filled in all 4 words.</p>
+            <div id="game-2"></div>
+            <p>If you're stuck on a word you can try working the puzzle in the other direction by clicking the Flip button.</p>
+            <div id="game-3"></div>
+            <p>Now, same as before, find a word that uses 4 letters from the word above and 1 letter from the word at the bottom.</p>
+            <div id="game-4"></div>
+            <p>You win the game when you fill in the last word.</p>
+            <div id="game-5"></div>
+            <p>Your score is the number of stars still showing -- you lose a star for every minute you're working on the puzzle.</p>
             <div id="stars"></div>
             <p>Ready?</p>
+        </div>
+        <div class="footer">
             <button>Game on!</button>
         </div>
     </div>
