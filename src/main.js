@@ -255,6 +255,7 @@ function showSuccess(state) {
         <p id="copied">Copied to clipboard.</p>
         <div class="buttons">
         <button>Share</button>
+        <button>Copy</button>
         <button>OK</button>
         </div>
     `;
@@ -269,7 +270,7 @@ function showSuccess(state) {
     popup.addEventListener('buttonClick', (e) => {
         const { name } = e.detail;
 
-        if (name === 'Share') {
+        if (name === 'Share' || name === 'Copy') {
             const share = [
                 'Anagramish by @emh',
                 emojiWord(state.words[0]),
@@ -285,7 +286,7 @@ function showSuccess(state) {
                 text: share.join('\n')
             };
             
-            if (navigator.canShare && navigator.canShare(data)) {
+            if (name === 'Share' && navigator.canShare && navigator.canShare(data)) {
                 navigator.share(data);
             } else {
                 const div = document.querySelector('#copied');
