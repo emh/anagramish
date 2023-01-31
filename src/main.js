@@ -14,6 +14,14 @@ import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished } 
 import pairsFile from './pairs.txt';
 import dictFile from './dictionary.txt';
 
+function goal(name) {
+    try {
+        clicky.goal(name);
+    } catch (e) {
+        console.error('Error logging goal', name, e);
+    }
+}
+
 function loadGame() {
     const history = getHistory();
 
@@ -271,6 +279,8 @@ function showSuccess(state) {
         const { name } = e.detail;
 
         if (name === 'Share' || name === 'Copy') {
+            goal('Shared');
+
             const share = [
                 'Anagramish by @emh',
                 emojiWord(state.words[0]),
@@ -330,10 +340,14 @@ function handleEnter(state) {
         } else if (compareWords(word, firstWord) !== (state.flipped ? y : 5 - y) || compareWords(word, lastWord) !== (state.flipped ? 5 - y : y)) {
             showError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
         } else {
+            goal('Entered Word');
+
             state.position.y += state.flipped ? -1 : 1;
             state.position.x = 0;
 
             if (isFinished(state.words)) {
+                goal('Game Finished');
+
                 if (state.timer) {
                     clearInterval(state.timer);
                 }
