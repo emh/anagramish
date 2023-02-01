@@ -44,7 +44,7 @@ function parse(pairs) {
     });
 }
 
-const countForLevel = (level) => level === 0 ? 10000 : Math.pow(2, 9 - level) * 10;
+const countForLevel = (level) => level === 0 ? 10000 : Math.pow(2, 10 - ((1 + level) * 2)) * 10;
 
 const checkCount = (pair, minCount, maxCount) => {
     const count = pair[2];
@@ -64,8 +64,8 @@ const calcIndex = (n) => {
 }
 
 function choosePair(pairs, level) {
-    const maxCount = countForLevel(Math.floor(level / 2) * 2);
-    const minCount = level >= 8 ? 1 : countForLevel(Math.floor(level / 2) * 2 + 2);
+    const maxCount = countForLevel(level);
+    const minCount = level === 4 ? 1 : countForLevel(level + 1);
 
     const filteredPairs = pairs.filter((pair) => checkCount(pair, minCount, maxCount));
     const n = filteredPairs.length;
@@ -133,7 +133,7 @@ function calculateStats(history) {
 
         if ((k !== key() && (!game.finished) || game.numSeconds >= 240) && level > 0) {
             level--;
-        } else if (game.finished && game.numSeconds <= 120 && level < 9) {
+        } else if (game.finished && game.numSeconds <= 120 && level < 4) {
             level++;
         }
     });
@@ -226,10 +226,8 @@ function emojiWord(word) {
 function emojiLevel(level) {
     const word = [];
 
-    const n = Math.floor(level / 2);
-
     for (let i = 0; i < 5; i++) {
-        word.push(i <= n ? emojiletters.yellow : emojiletters.black);
+        word.push(i <= level ? emojiletters.yellow : emojiletters.black);
     }
 
     return word.join(' ');
@@ -355,7 +353,7 @@ function handleEnter(state) {
                 const game = loadGame();
 
                 state.streak++;
-                state.level += Math.min(9, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
+                state.level += Math.min(4, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
                 state.finished = true;
 
                 game.finished = true;
@@ -503,7 +501,8 @@ function showPopup(state) {
             `;
         } else {
             message = `
-                <p>Welcome back. You're at level ${Math.floor(state.level/2) + 1}.</p>
+                <p>Welcome back. You're at level ${state.level + 1}.</p>
+                ${emojiLevel(state.level)}
                 ${state.streak > 0 ?
                     `<p>Your streak is currently ${state.streak}.</p>` :
                     '<p>Starting a new streak today - come back daily to keep it going.'
