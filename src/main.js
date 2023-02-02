@@ -71,7 +71,7 @@ function choosePair(pairs, level) {
     const n = filteredPairs.length;
     const i = calcIndex(n);
 
-    return ['marry','bused']; //filteredPairs[i];
+    return filteredPairs[i];
 }
 
 function renderBoard(state) {
