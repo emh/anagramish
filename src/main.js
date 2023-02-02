@@ -71,7 +71,7 @@ function choosePair(pairs, level) {
     const n = filteredPairs.length;
     const i = calcIndex(n);
 
-    return filteredPairs[i];
+    return ['marry','bused']; //filteredPairs[i];
 }
 
 function renderBoard(state) {
@@ -328,13 +328,18 @@ function handleEnter(state) {
         const y = state.position.y;
         const word = state.words[y].join('');
         const previousWord = state.words[state.flipped ? y + 1 : y - 1].join('');
+        const nextWord = state.words[state.flipped ? y - 1 : y + 1].join('');
         const firstWord = state.words[state.flipped ? 5 : 0].join('');
         const lastWord = state.words[state.flipped ? 0 : 5].join('');
+
+        const hasNextWord = nextWord !== '     ';
 
         if (!state.dict.includes(word)) {
             showError('Not a word.', y);
         } else if (compareWords(word, previousWord) !== 4) {
             showError('You must change only 1 letter from the previous word.');
+        } else if (hasNextWord && compareWords(word, nextWord) !== 4) {
+            showError('You must change only 1 letter from the next word.');
         } else if (compareWords(word, firstWord) !== (state.flipped ? y : 5 - y) || compareWords(word, lastWord) !== (state.flipped ? 5 - y : y)) {
             showError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
         } else {
