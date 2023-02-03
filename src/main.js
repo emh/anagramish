@@ -356,7 +356,7 @@ function handleEnter(state) {
         } else if (hasNextWord && compareWords(word, nextWord) !== 4) {
             showError(`${renderWord(word)}<p>can only be one letter different from</p>${renderWord(nextWord)}`);
         } else if (compareWords(word, firstWord) !== (state.flipped ? y : 5 - y) || compareWords(word, lastWord) !== (state.flipped ? 5 - y : y)) {
-            showError(`<p>You have to use ${5 - y} letter${y === 4 ? '' : 's'} from</p>${renderWord(firstWord)}<p>and ${y} letter${y === 1 ? '' : 's'} from</p>${renderWord(lastWord)}`);
+            showError(`<p>You have to use ${5 - y} letter${y === 4 ? '' : 's'} from</p>${renderWord(state.words[0].join(''))}<p>and ${y} letter${y === 1 ? '' : 's'} from</p>${renderWord(state.words[5].join(''))}`);
         } else {
             goal('Entered Word');
 
