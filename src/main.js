@@ -131,7 +131,14 @@ function calculateStats(history) {
             streak++;
         }
 
-        if ((k !== key() && (!game.finished) || game.numSeconds >= 240) && level > 0) {
+        // lose a level if:
+        //  not today's game and not finished or time > 240
+        //  today's game and finished and time > 240
+        // gain a level if:
+        //  game finished and time < 120
+        if (k !== key() && (!game.finished || game.numSeconds >= 240) && level > 0) {
+            level--;
+        } else if (k === key() && game.finished && game.numSeconds >= 240 && level > 0) {
             level--;
         } else if (game.finished && game.numSeconds <= 120 && level < 4) {
             level++;
@@ -373,7 +380,11 @@ function handleEnter(state) {
                 const game = loadGame();
 
                 state.streak++;
-                state.level += Math.min(4, Math.max(0, (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
+                state.level = Math.min(
+                    4,
+                    Math.max(
+                        0,
+                        state.level + (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
                 state.finished = true;
 
                 game.finished = true;
