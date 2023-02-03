@@ -406,7 +406,6 @@ function clearPopup() {
     const popup = app.querySelector('popup-message');
 
     if (popup) {
-        console.log('removing popup');
         app.removeChild(popup);
 
         return true;
