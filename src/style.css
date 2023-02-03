@@ -243,6 +243,7 @@ html, body, #app {
 .buttons {
   display: flex;
   justify-content: space-around;
+  margin-bottom: 10px;
 }
 
 #help {
@@ -254,4 +255,38 @@ html, body, #app {
 #copied {
   color: green;
   visibility: hidden;
+}
+
+.word {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+}
+
+.letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--letter-border-radius);
+  height: 25px;
+  width: 25px;
+  font-size: 20px;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  cursor: pointer;
+  background-color: var(--letter-background-color);
+  border: solid 1px var(--border-color);
+  color: var(--letter-color);
+}
+
+.start {
+    background-color: var(--letter-background-color-start);
+    border-color: var(--letter-border-color-start);
+    color: var(--letter-color-start);
+}
+
+.end {
+    background-color: var(--letter-background-color-end);
+    border-color: var(--letter-border-color-end);
+    color: var(--letter-color-end);
 }

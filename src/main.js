@@ -334,14 +334,29 @@ function handleEnter(state) {
 
         const hasNextWord = nextWord !== '     ';
 
+        const classesFor = (l) => {
+            const classes = ['letter'];
+
+            if (state.words[0].indexOf(l) !== -1) classes.push('start');
+            if (state.words[5].indexOf(l) !== -1) classes.push('end'); 
+
+            return classes.join(' ');
+        };
+
+        const renderWord = (word) => {
+            const letters = word.split('');
+
+            return `<div class="word">${letters.map((l) => `<span class="${classesFor(l)}">${l}</span>`).join('')}</div>`;
+        };
+
         if (!state.dict.includes(word)) {
             showError('Not a word.', y);
         } else if (compareWords(word, previousWord) !== 4) {
-            showError('You must change only 1 letter from the previous word.');
+            showError(`${renderWord(word)}<p>can only be one letter different from</p>${renderWord(previousWord)}`);
         } else if (hasNextWord && compareWords(word, nextWord) !== 4) {
-            showError('You must change only 1 letter from the next word.');
+            showError(`${renderWord(word)}<p>can only be one letter different from</p>${renderWord(nextWord)}`);
         } else if (compareWords(word, firstWord) !== (state.flipped ? y : 5 - y) || compareWords(word, lastWord) !== (state.flipped ? 5 - y : y)) {
-            showError(`The ${nth(y)} word must have ${5 - y} yellow${y === 4 ? '' : 's'} and ${y} red${y === 1 ? '' : 's'}.`);
+            showError(`<p>You have to use ${5 - y} letter${y === 4 ? '' : 's'} from</p>${renderWord(firstWord)}<p>and ${y} letter${y === 1 ? '' : 's'} from</p>${renderWord(lastWord)}`);
         } else {
             goal('Entered Word');
 
@@ -386,13 +401,25 @@ function handleFlip(state) {
     state.position.y = state.flipped ? state.words.findLastIndex(emptyWord) : state.words.findIndex(emptyWord);
 }
 
+function clearPopup() {
+    const app = document.getElementById('app');
+    const popup = app.querySelector('popup-message');
+
+    if (popup) {
+        console.log('removing popup');
+        app.removeChild(popup);
+
+        return true;
+    }
+
+    return false;
+}
+
 function setupKeyboardHandler(state) {
     const keyboard = document.querySelector('virtual-keyboard');
 
     keyboard.addEventListener('keypress', (event) => {
         const key = event.detail.key;
-
-        if (state.finished) return;
 
         if (state.position.y < 5) {
             if (key === '⌫') {
@@ -411,6 +438,8 @@ function setupKeyboardHandler(state) {
 
     document.addEventListener('keydown', (e) => {
         if (!state.finished) {
+            if (clearPopup()) return;
+
             switch (e.key) {
                 case 'Backspace':
                     handleBackspace(state);
@@ -468,17 +497,17 @@ function showError(message) {
     const app = document.getElementById('app');
     const error = new PopupMessage('error');
 
-    const p = document.createElement('p');
-    p.setAttribute('slot', 'content');
-    p.textContent = message;
+    const content = document.createElement('div');
+    content.setAttribute('slot', 'content');
+    content.innerHTML = `${message}<br/><br/><div class="buttons"><button>OK</button>`;
 
-    error.append(p);
+    error.append(content);
     app.append(error);
 
-    setTimeout(() => {
+    error.addEventListener('buttonClick', (e) => {
         app.removeChild(error);
-    }, 2000);
-} 
+    });
+}
 
 function showHelp() {
     const app = document.getElementById('app');
