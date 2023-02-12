@@ -78,7 +78,7 @@ function renderBoard(state) {
     const container = document.getElementById('board');
     const gameBoard = new GameBoard(state);
 
-    container.innerHTML = '';    
+    container.innerHTML = '';
     container.append(gameBoard);
 
     setupBoardHandler(state);
@@ -121,13 +121,16 @@ function calculateStats(history) {
     let level = 0;
     let streak = 0;
     const keys = Object.keys(history);
+    let pk = null;
 
     keys.sort().forEach((k) => {
         const game = history[k];
 
-        if (!game.finished && k !== key()) {
+        if ((!game.finished && k !== key()) || (pk && new Date(k) - new Date(pk) > 86400000)) {
             streak = 0;
-        } else if (game.finished) {
+        }
+
+        if (game.finished) {
             streak++;
         }
 
@@ -135,15 +138,21 @@ function calculateStats(history) {
         //  not today's game and not finished or time > 240
         //  today's game and finished and time > 240
         // gain a level if:
-        //  game finished and time < 120
+        //  game finished and time < 120 (but not for today's game)
         if (k !== key() && (!game.finished || game.numSeconds >= 240) && level > 0) {
             level--;
         } else if (k === key() && game.finished && game.numSeconds >= 240 && level > 0) {
             level--;
-        } else if (game.finished && game.numSeconds <= 120 && level < 4) {
+        } else if (game.finished && game.numSeconds <= 120 && level < 4 && k !== key()) {
             level++;
         }
+
+        pk = k;
     });
+
+    if (pk && new Date(key()) - new Date(pk) > 86400000) {
+        streak = 0;
+    }
 
     return { level, streak };
 }
@@ -253,7 +262,7 @@ function emojiStars(n) {
 function showSuccess(state) {
     const game = loadGame();
     const n = numStars(game.numSeconds);
-    
+
     const message = `
         <p>You solved it!</p>
         <p>You earned ${n} star${n !== 1 ? 's' : ''}<br/>
@@ -292,6 +301,7 @@ function showSuccess(state) {
                 emojiLevel(state.level),
                 emojiStars(n),
                 emojiWord(state.words[5]),
+                `Streak: ${state.streak}`,
                 '',
                 'https://anagramish.com'
             ];
@@ -300,7 +310,7 @@ function showSuccess(state) {
                 title: 'Anagramish',
                 text: share.join('\n')
             };
-            
+
             if (name === 'Share' && navigator.canShare && navigator.canShare(data)) {
                 navigator.share(data);
             } else {
@@ -345,7 +355,7 @@ function handleEnter(state) {
             const classes = ['letter'];
 
             if (state.words[0].indexOf(l) !== -1) classes.push('start');
-            if (state.words[5].indexOf(l) !== -1) classes.push('end'); 
+            if (state.words[5].indexOf(l) !== -1) classes.push('end');
 
             return classes.join(' ');
         };
@@ -380,11 +390,6 @@ function handleEnter(state) {
                 const game = loadGame();
 
                 state.streak++;
-                state.level = Math.min(
-                    4,
-                    Math.max(
-                        0,
-                        state.level + (game.numSeconds >= 240 ? -1 : game.numSeconds <= 120 ? 1 : 0)));
                 state.finished = true;
 
                 game.finished = true;
@@ -567,7 +572,7 @@ function showPopup(state) {
 
         popup.addEventListener('buttonClick', (event) => {
             const { name } = event.detail;
-            
+
             if (name === 'Start') {
                 app.removeChild(popup);
                 state.started = true;
@@ -584,7 +589,7 @@ function showPopup(state) {
 function renderStars(seconds) {
     const div = document.getElementById('stars');
     const stars = new GameStars(seconds);
-    
+
     div.innerHTML = '';
     div.append(stars);
 }
