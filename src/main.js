@@ -279,6 +279,7 @@ function showSuccess(state) {
         <button>Share</button>
         <button>Copy</button>
         <button>OK</button>
+        <button>*</button>
         </div>
     `;
 
@@ -319,25 +320,14 @@ function showSuccess(state) {
 
                 navigator.clipboard.writeText(data.text);
             }
+        } else if (name === '*') {
+            navigator.clipboard.writeText(localStorage.getItem('history'));
         } else {
             app.removeChild(popup);
         }
     });
     popup.append(div);
     app.appendChild(popup);
-}
-
-const nth = (n) => {
-    switch (n) {
-        case 1:
-            return 'first';
-        case 2:
-            return 'second';
-        case 3:
-            return 'third';
-        case 4:
-            return 'fourth';
-    }
 }
 
 function handleEnter(state) {
