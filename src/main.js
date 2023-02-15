@@ -124,13 +124,19 @@ function calculateStats(history) {
     let pk = null;
 
     keys.sort().forEach((k) => {
+        console.log({k, streak, level});
+
         const game = history[k];
 
+        console.log(game, k !== key(), pk && new Date(k) - new Date(pk) > 86400000);
+
         if ((!game.finished && k !== key()) || (pk && new Date(k) - new Date(pk) > 86400000)) {
+            console.log('reset streak a');
             streak = 0;
         }
 
         if (game.finished) {
+            console.log('increment streak');
             streak++;
         }
 
@@ -140,19 +146,27 @@ function calculateStats(history) {
         // gain a level if:
         //  game finished and time < 120 (but not for today's game)
         if (k !== key() && (!game.finished || game.numSeconds >= 240) && level > 0) {
+            console.log('lose a level a');
             level--;
         } else if (k === key() && game.finished && game.numSeconds >= 240 && level > 0) {
+            console.log('lose a level b');
             level--;
         } else if (game.finished && game.numSeconds <= 120 && level < 4 && k !== key()) {
+            console.log('gain a level');
             level++;
         }
 
         pk = k;
     });
 
+    console.log(pk, key());
+
     if (pk && new Date(key()) - new Date(pk) > 86400000) {
+        console.log('reset streak b');
         streak = 0;
     }
+
+    console.log(key(), { level, streak });
 
     return { level, streak };
 }
@@ -603,7 +617,31 @@ function render(state) {
     renderKeyboard(state);
 }
 
+function fixHistoryDates() {
+    const history = getHistory();
+
+    const keys = Object.keys(history);
+
+    console.log(keys);
+
+    keys.forEach((key) => {
+        const match = key.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+
+        if (match) {
+            const newKey = `${match[3]}-${match[1].padStart(2, '0')}-${match[2].padStart(2, '0')}`;
+
+            history[newKey] = history[key];
+
+            delete history[key];
+        }
+    });
+
+    putHistory(history)
+}
+
 async function main() {
+    fixHistoryDates();
+
     const pairs = await loadFile(pairsFile);
     const dict = await loadFile(dictFile);
     const state = init(parse(pairs), dict);

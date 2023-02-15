@@ -2,7 +2,11 @@ export const numStars = (s) => Math.max(0, 5 - Math.floor(s / 60));
 
 export const loadFile = (file) => fetch(file).then((response) => response.text()).then((text) => text.split('\n'));
 
-export const key = () => new Date().toLocaleDateString("en-CA");
+export const key = () => {
+    const d = new Date(); // local time
+
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export const getHistory = () => JSON.parse(localStorage.getItem('history')) ?? {};
 
