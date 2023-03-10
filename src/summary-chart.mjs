@@ -31,52 +31,52 @@ export class SummaryChart extends HTMLElement {
         div.innerHTML = `
             <div>
                 <div>⬛</div><div>⬛</div><div>⬛</div><div>⬛</div><div>🟨</div>
-                <div>${stats[0][0]}</div><div>${stats[0][1]}</div><div>${stats[0][2]}</div><div>${stats[0][3]}</div><div>${stats[0][4]}</div>
+                <div>${stats[0][0]}</div><div>${stats[0][1]}</div><div>${stats[0][2]}</div><div>${stats[0][3]}</div><div>${stats[0][4]}</div><div>${stats[0][5]}</div>
             </div>
 
             <div>
                 <div>⬛</div><div>⬛</div><div>⬛</div><div>🟨</div><div>🟨</div>
-                <div>${stats[1][0]}</div><div>${stats[1][1]}</div><div>${stats[1][2]}</div><div>${stats[1][3]}</div><div>${stats[1][4]}</div>
+                <div>${stats[1][0]}</div><div>${stats[1][1]}</div><div>${stats[1][2]}</div><div>${stats[1][3]}</div><div>${stats[1][4]}</div><div>${stats[1][5]}</div>
             </div>
 
             <div>
                 <div>⬛</div><div>⬛</div><div>🟨</div><div>🟨</div><div>🟨</div>
-                <div>${stats[2][0]}</div><div>${stats[2][1]}</div><div>${stats[2][2]}</div><div>${stats[2][3]}</div><div>${stats[2][4]}</div>
+                <div>${stats[2][0]}</div><div>${stats[2][1]}</div><div>${stats[2][2]}</div><div>${stats[2][3]}</div><div>${stats[2][4]}</div><div>${stats[2][5]}</div>
             </div>
 
             <div>
                 <div>⬛</div><div>🟨</div><div>🟨</div><div>🟨</div><div>🟨</div>
-                <div>${stats[3][0]}</div><div>${stats[3][1]}</div><div>${stats[3][2]}</div><div>${stats[3][3]}</div><div>${stats[3][4]}</div>
+                <div>${stats[3][0]}</div><div>${stats[3][1]}</div><div>${stats[3][2]}</div><div>${stats[3][3]}</div><div>${stats[3][4]}</div><div>${stats[3][5]}</div>
             </div>
 
             <div>
                 <div>🟨</div><div>🟨</div><div>🟨</div><div>🟨</div><div>🟨</div>
-                <div>${stats[4][0]}</div><div>${stats[4][1]}</div><div>${stats[4][2]}</div><div>${stats[4][3]}</div><div>${stats[4][4]}</div>
+                <div>${stats[4][0]}</div><div>${stats[4][1]}</div><div>${stats[4][2]}</div><div>${stats[4][3]}</div><div>${stats[4][4]}</div><div>${stats[4][5]}</div>
             </div>
 
             <div>
                 <div></div><div></div><div></div><div></div><div></div>
-                <div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div>
+                <div></div><div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div>
             </div>
 
             <div>
                 <div></div><div></div><div></div><div></div><div></div>
-                <div></div><div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div>
+                <div></div><div></div><div>⭐</div><div>⭐</div><div>⭐</div><div>⭐</div>
             </div>
 
             <div>
                 <div></div><div></div><div></div><div></div><div></div>
-                <div></div><div></div><div>⭐</div><div>⭐</div><div>⭐</div>
+                <div></div><div></div><div></div><div>⭐</div><div>⭐</div><div>⭐</div>
             </div>
 
             <div>
                 <div></div><div></div><div></div><div></div><div></div>
-                <div></div><div></div><div></div><div>⭐</div><div>⭐</div>
+                <div></div><div></div><div></div><div></div><div>⭐</div><div>⭐</div>
             </div>
 
             <div>
                 <div></div><div></div><div></div><div></div><div></div>
-                <div></div><div></div><div></div><div></div><div>⭐</div>
+                <div></div><div></div><div></div><div></div><div></div><div>⭐</div>
             </div>
         `;
 

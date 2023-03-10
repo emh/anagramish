@@ -12,11 +12,11 @@ export class PopupStats extends HTMLElement {
         shadowRoot.addEventListener('click', (e) => this.handleClick(e));
 
         const summaryStats = [
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0]
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0]
         ];
 
         const historyStats = [];
@@ -35,7 +35,7 @@ export class PopupStats extends HTMLElement {
 
             if (stars <= 1 && level > 0) {
                 level--;
-            } else if (stars >= 4) {
+            } else if (stars >= 4 && level < 4) {
                 level++;
             }
         });
@@ -101,6 +101,11 @@ template.innerHTML = `
 
         button {
             font-size: 20px;
+        }
+
+        #history {
+                            padding-left: 40px;
+
         }
     </style>
     <div>

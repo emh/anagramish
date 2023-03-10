@@ -7,7 +7,7 @@ export class HistoryChart extends HTMLElement {
 
         style.textContent = `
             :host {
-                flex-direction: column;
+                text-align: left;
                 font-size: 16px;
             }
         `;
@@ -20,11 +20,11 @@ export class HistoryChart extends HTMLElement {
         console.log(stats);
 
         div.innerHTML = stats.map((entry) => {
-            return `
+            return `<div>
                 ${'⬛'.repeat(4 - entry.level)}${'🟨'.repeat(entry.level + 1)}
                 ${entry.date}
                 ${'⭐'.repeat(entry.stars)}
-            `;
+            </div>`;
         }).join('');
 
         shadowRoot.append(div);
