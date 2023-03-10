@@ -252,6 +252,24 @@ html, body, #app {
   left: 15px;
 }
 
+#stats {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.btn {
+  background-color: var(--button-background-color);
+  color: var(--text-color);
+  text-decoration: none;
+  border: solid 1px var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 30px;
+}
+
 #copied {
   color: green;
   visibility: hidden;

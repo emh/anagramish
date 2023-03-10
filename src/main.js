@@ -7,6 +7,7 @@ import { GameBoard } from './game-board.mjs';
 import { GameStars } from './game-stars.mjs';
 import { PopupMessage } from './popup-message.mjs';
 import { PopupHelp } from './popup-help.mjs';
+import { PopupStats } from './popup-stats.mjs';
 
 import { compareWords, isLetter } from './words.mjs';
 import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished } from './utils.mjs';
@@ -287,13 +288,12 @@ function showSuccess(state) {
         ${emojiStars(n)}<br/>
         ${emojiWord(state.words[5])}
         </div>
-        <p>Come back tomorrow to extend your streak!</p>
+        <p>Have you played <br/><a href="https://emh.io/shootingblanks">Shooting Blanks</a>?</p>
         <p id="copied">Copied to clipboard.</p>
         <div class="buttons">
         <button>Share</button>
         <button>Copy</button>
         <button>OK</button>
-        <button>*</button>
         </div>
     `;
 
@@ -539,6 +539,17 @@ function showHelp() {
     app.appendChild(popup);
 }
 
+function showStats() {
+    const app = document.getElementById('app');
+    const popup = new PopupStats(getHistory());
+
+    popup.addEventListener('buttonClick', (event) => {
+        app.removeChild(popup);
+    });
+
+    app.appendChild(popup);
+}
+
 function showPopup(state) {
     return new Promise((resolve) => {
         const app = document.getElementById('app');
@@ -652,7 +663,16 @@ async function main() {
     render(state);
 
     const help = document.getElementById('help');
-    help.addEventListener('click', showHelp);
+    help.addEventListener('click', (e) => {
+        e.preventDefault();
+        showHelp();
+    });
+
+    const stats = document.getElementById('stats');
+    stats.addEventListener('click', (e) => {
+        e.preventDefault();
+        showStats();
+    });
 
     if (state.finished) {
         showSuccess(state);
