@@ -8,7 +8,7 @@ export class HistoryChart extends HTMLElement {
         style.textContent = `
             :host {
                 text-align: left;
-                font-size: 16px;
+                font-size: 12px;
             }
         `;
 
