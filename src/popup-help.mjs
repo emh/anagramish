@@ -170,11 +170,15 @@ template.innerHTML = `
         #stars {
             margin-left: 20px;
         }
+
+        a {
+        color: var(--link-color);
+        }
     </style>
     <div>
         <h1>ANAGRAMISH</h1>
         <p class="center">by <a target="_blank" href="http://twitter.com/emh">emh</a></p>
-        
+
         <div class="scroll">
             <h1>How to Play</h1>
             <p>The game board has a start word and an end word.</p>

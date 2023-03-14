@@ -42,6 +42,8 @@
   --key-border-color: var(--border-color);
   --key-disabled-background-color: var(--key-background-color);
   --key-disabled-color: lightgray;
+
+  --link-color: #0033cc;
 }
 
 [data-theme="classic"] {
@@ -86,6 +88,8 @@ html[data-theme="dark"] {
   --key-color: var(--text-color);
   --key-disabled-color: #666;
   --key-disabled-background-color: #444;
+
+  --link-color: #809fff;
 }
 
 html {
@@ -307,4 +311,8 @@ html, body, #app {
     background-color: var(--letter-background-color-end);
     border-color: var(--letter-border-color-end);
     color: var(--letter-color-end);
+}
+
+a {
+  color: var(--link-color);
 }

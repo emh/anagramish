@@ -46,7 +46,7 @@ template.innerHTML = `
         .success {
             color: green;
         }
-    </style>
+        </style>
     <div class="popup">
         <slot name="content"></slot>
     </div>

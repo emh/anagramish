@@ -6,7 +6,7 @@ export class GameBoard extends HTMLElement {
         const style = document.createElement('style');
 
         style.textContent = `
-            :host { 
+            :host {
                 display: grid;
                 grid-template-rows: repeat(6, 1fr);
                 gap: 5px;
@@ -44,6 +44,7 @@ export class GameBoard extends HTMLElement {
                 background-color: var(--action-background-color);
                 border: solid 1px var(--action-border-color);
                 color: var(--action-color);
+                user-select: none;
             }
 
             .start {
@@ -73,6 +74,7 @@ export class GameBoard extends HTMLElement {
                 width: 50px;
                 font-size: 30px;
                 cursor: pointer;
+                user-select: none;
             }
         `;
 
@@ -92,7 +94,7 @@ export class GameBoard extends HTMLElement {
 
                 cell.classList.add('cell');
                 if (startWord.indexOf(l) !== -1) cell.classList.add('start');
-                if (endWord.indexOf(l) !== -1) cell.classList.add('end'); 
+                if (endWord.indexOf(l) !== -1) cell.classList.add('end');
                 if (!state.finished && x === state.position.x && actualY === state.position.y && actualY < 5) cell.classList.add('active');
                 cell.textContent = l;
                 if (l !== ' ') cell.addEventListener('click', () => this.letterPress(l))
@@ -104,7 +106,7 @@ export class GameBoard extends HTMLElement {
                 if (y === (state.flipped ? 5 - state.position.y : state.position.y)) {
                     if (state.position.x > 0) {
                         const key = document.createElement('div');
-    
+
                         key.textContent = '⌫';
                         key.className = 'key';
                         key.addEventListener('click', () => this.backspacePress())
@@ -113,7 +115,7 @@ export class GameBoard extends HTMLElement {
 
                     if (state.position.x === 5) {
                         const key = document.createElement('div');
-    
+
                         key.textContent = '⏎';
                         key.className = 'key';
                         key.addEventListener('click', () => this.enterPress())

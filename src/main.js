@@ -294,7 +294,6 @@ function showSuccess(state) {
         <button>Share</button>
         <button>Copy</button>
         <button>OK</button>
-        <button>*</button>
         </div>
     `;
 
