@@ -10,7 +10,7 @@ import { PopupHelp } from './popup-help.mjs';
 import { PopupStats } from './popup-stats.mjs';
 
 import { compareWords, isLetter } from './words.mjs';
-import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished } from './utils.mjs';
+import { numStars, loadFile, key, getHistory, putHistory, isEmpty, isFinished, level } from './utils.mjs';
 
 import pairsFile from './pairs.txt';
 import dictFile from './dictionary.txt';
@@ -119,14 +119,11 @@ function initWords(pair) {
 }
 
 function calculateStats(history) {
-    let level = 0;
     let streak = 0;
     const keys = Object.keys(history);
     let pk = null;
 
     keys.sort().forEach((k) => {
-        console.log({k, streak, level});
-
         const game = history[k];
 
         console.log(game, k !== key(), pk && new Date(k) - new Date(pk) > 86400000);
@@ -141,22 +138,6 @@ function calculateStats(history) {
             streak++;
         }
 
-        // lose a level if:
-        //  not today's game and not finished or time > 240
-        //  today's game and finished and time > 240
-        // gain a level if:
-        //  game finished and time < 120 (but not for today's game)
-        if (k !== key() && (!game.finished || game.numSeconds >= 240) && level > 0) {
-            console.log('lose a level a');
-            level--;
-        } else if (k === key() && game.finished && game.numSeconds >= 240 && level > 0) {
-            console.log('lose a level b');
-            level--;
-        } else if (game.finished && game.numSeconds <= 120 && level < 4 && k !== key()) {
-            console.log('gain a level');
-            level++;
-        }
-
         pk = k;
     });
 
@@ -167,9 +148,7 @@ function calculateStats(history) {
         streak = 0;
     }
 
-    console.log(key(), { level, streak });
-
-    return { level, streak };
+    return { level: level(), streak };
 }
 
 function initTodaysGame(pairs, level) {
@@ -565,8 +544,7 @@ function showPopup(state) {
             `;
         } else {
             message = `
-                <p>Welcome back. You're at level ${state.level + 1}.</p>
-                ${emojiLevel(state.level)}
+                <p>Welcome back.</p>
                 ${state.streak > 0 ?
                     `<p>Your streak is currently ${state.streak}.</p>` :
                     '<p>Starting a new streak today - come back daily to keep it going.'

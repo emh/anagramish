@@ -8,6 +8,8 @@ export const key = () => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+export const level = () => Date.parse(key()) / 86400000 % 5;
+
 export const getHistory = () => JSON.parse(localStorage.getItem('history')) ?? {};
 
 export const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));

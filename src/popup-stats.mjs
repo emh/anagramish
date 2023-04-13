@@ -2,6 +2,15 @@ import { SummaryChart } from "./summary-chart.mjs";
 import { HistoryChart } from "./history-chart.mjs";
 import { key, numStars } from "./utils.mjs";
 
+const levelFromCount = (count) => {
+    if (count < 10) return 4;
+    if (count < 40) return 3;
+    if (count < 160) return 2;
+    if (count < 640) return 1;
+
+    return 0;
+}
+
 export class PopupStats extends HTMLElement {
     constructor(history) {
         console.log(history);
@@ -20,11 +29,11 @@ export class PopupStats extends HTMLElement {
         ];
 
         const historyStats = [];
-        let level = 0;
         const keys = Object.keys(history);
 
         keys.sort().forEach((k) => {
             const game = history[k];
+            const level = levelFromCount(game.pair[2]);
 
             if (k === key()) return;
 
@@ -32,12 +41,6 @@ export class PopupStats extends HTMLElement {
 
             historyStats.push({ date: k, level, stars });
             summaryStats[level][stars]++;
-
-            if (stars <= 1 && level > 0) {
-                level--;
-            } else if (stars >= 4 && level < 4) {
-                level++;
-            }
         });
 
         console.log(summaryStats, historyStats);
