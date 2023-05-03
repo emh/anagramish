@@ -156,7 +156,10 @@ function initTodaysGame(pairs, level) {
 
     return {
         pair,
-        numSeconds: 0
+        numSeconds: 0,
+        flips: 0,
+        trashes: 0,
+        guesses: 0
     };
 }
 
@@ -226,7 +229,11 @@ const emojiletters = {
     z: '🇿',
     black: '⬛',
     yellow: '🟨',
-    star: '⭐'
+    star: '⭐',
+    timer: '⏲️',
+    flip: '↕️',
+    trash: '🗑️',
+    guess: '🔠'
 };
 
 function emojiWord(word) {
@@ -243,14 +250,15 @@ function emojiLevel(level) {
     return word.join(' ');
 }
 
-function emojiStars(n) {
-    const word = [];
+const time = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0') }`;
 
-    for (let i = 0; i < n; i++) {
-        word.push(emojiletters.star);
-    }
-
-    return word.join(' ');
+function emojiStats({ guesses = 0, numSeconds = 0, flips = 0, trashes = 0 }) {
+    return [
+        `⏲️ ${time(numSeconds)}`,
+        `🔠 ${guesses}`,
+        `↕️ ${flips}`,
+        `🗑️ ${trashes}`
+    ];
 }
 
 function showSuccess(state) {
@@ -264,10 +272,10 @@ function showSuccess(state) {
         <div>
         ${emojiWord(state.words[0])}<br/>
         ${emojiLevel(state.level)}<br/>
-        ${emojiStars(n)}<br/>
+        ${emojiStats(game).join('<br>')}<br/>
         ${emojiWord(state.words[5])}
         </div>
-        <p>Have you played <br/><a href="https://emh.io/shootingblanks">Shooting Blanks</a>?</p>
+        <p>Have you played <br/><a href="https://emh.io/cards/ps">Poker Squares</a>?</p>
         <p id="copied">Copied to clipboard.</p>
         <div class="buttons">
         <button>Share</button>
@@ -293,7 +301,7 @@ function showSuccess(state) {
                 'Anagramish by @emh',
                 emojiWord(state.words[0]),
                 emojiLevel(state.level),
-                emojiStars(n),
+                emojiStats(game).join('\n'),
                 emojiWord(state.words[5]),
                 `Streak: ${state.streak}`,
                 '',
@@ -325,6 +333,10 @@ function showSuccess(state) {
 
 function handleEnter(state) {
     if (state.position.x === 5 && state.position.y < 5) {
+        const game = loadGame();
+        game.guesses += 1;
+        saveGame(game);
+
         const y = state.position.y;
         const word = state.words[y].join('');
         const previousWord = state.words[state.flipped ? y + 1 : y - 1].join('');
@@ -386,6 +398,10 @@ function handleEnter(state) {
 }
 
 function handleDeleteWord(state) {
+    const game = loadGame();
+    game.trashes += 1;
+    saveGame(game);
+
     state.words[state.position.y] = '     '.split('');
     state.position.y -= state.flipped ? -1 : 1;
     state.words[state.position.y] = '     '.split('');
@@ -394,6 +410,10 @@ function handleDeleteWord(state) {
 const emptyWord = (word) => word.join('') === '     ';
 
 function handleFlip(state) {
+    const game = loadGame();
+    game.flips += 1;
+    saveGame(game);
+
     state.flipped = !state.flipped;
     state.words[state.position.y] = '     '.split('');
     state.position.x = 0;
