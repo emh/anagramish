@@ -252,12 +252,10 @@ function emojiLevel(level) {
 
 const time = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0') }`;
 
-function emojiStats({ guesses = 0, numSeconds = 0, flips = 0, trashes = 0 }) {
+function emojiStats({ guesses = 0, numSeconds = 0, flips = 0, trashes = 0 },  { streak }) {
     return [
-        `⏲️ ${time(numSeconds)}`,
-        `🔠 ${guesses}`,
-        `↕️ ${flips}`,
-        `🗑️ ${trashes}`
+        `⏲️ ${time(numSeconds)} 🏃 ${streak}`,
+        `🔠 ${guesses} ↕️ ${flips} 🗑️ ${trashes}`
     ];
 }
 
@@ -272,7 +270,7 @@ function showSuccess(state) {
         <div>
         ${emojiWord(state.words[0])}<br/>
         ${emojiLevel(state.level)}<br/>
-        ${emojiStats(game).join('<br>')}<br/>
+        ${emojiStats(game, state).join('<br>')}<br/>
         ${emojiWord(state.words[5])}
         </div>
         <p>Have you played <br/><a href="https://emh.io/cards/ps">Poker Squares</a>?</p>
@@ -301,9 +299,8 @@ function showSuccess(state) {
                 'Anagramish by @emh',
                 emojiWord(state.words[0]),
                 emojiLevel(state.level),
-                emojiStats(game).join('\n'),
+                emojiStats(game, state).join('\n'),
                 emojiWord(state.words[5]),
-                `Streak: ${state.streak}`,
                 '',
                 'https://anagramish.com'
             ];
