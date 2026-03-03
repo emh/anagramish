@@ -1,2 +1,0 @@
-# anagramish
-A JavaScript project

@@ -1,0 +1,375 @@
+:root {
+    --start: rgb(107, 170, 232);
+    --end: rgb(230, 149, 56);
+    --misc: rgb(230, 230, 230);
+
+    @media (prefers-color-scheme: dark) {
+        --fg: #E0E0E0;
+        --bg: #222222;
+    }
+
+    @media (prefers-color-scheme: light) {
+        --fg: #333333;
+        --bg: #f5f5f5;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    color: var(--fg);
+    background-color: var(--bg);
+    font-family: ui-sans-serif, system-ui, Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+}
+
+header {
+    overscroll-behavior: none;
+    text-align: center;
+    padding: 20px;
+    border-bottom: solid 1px var(--fg);
+}
+
+footer {
+    padding: 20px;
+    border-top: solid 1px var(--fg);
+    display: none;
+}
+
+footer.visible {
+    display: block;
+}
+
+header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+    font-weight: normal;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+#message {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%) scale(.85);
+    background: red;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25), 0 1px 0 rgba(255, 255, 255, .2) inset;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+#message.show {
+    animation:
+        pop-in 320ms cubic-bezier(.34, 1.56, .64, 1) both,
+        fade-out 260ms ease 2300ms forwards;
+}
+
+#message.show::before {
+    opacity: 1;
+    animation: slam-ring 460ms ease-out both;
+}
+
+@keyframes pop-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-10px) scale(.75);
+    }
+
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1.08);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+}
+
+@keyframes slam-ring {
+    0% {
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, .55);
+    }
+
+    100% {
+        box-shadow: 0 0 0 16px rgba(229, 57, 53, 0);
+    }
+}
+
+@keyframes fade-out {
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-6px) scale(.98);
+    }
+}
+
+main {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overscroll-behavior: contain;
+    padding-bottom: 20px;
+}
+
+main section {
+    max-width: 500px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+}
+
+section.history-screen {
+    width: 100%;
+    padding: 20px;
+    gap: 12px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-evenly;
+    gap: 10px;
+}
+
+#play, #share, #copy, #practice, #history {
+    flex: 1;
+    height: 32px;
+    border: solid 1px var(--fg);
+    border-radius: 8px;
+    color: black;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 5px var(--fg);
+}
+
+button#back {
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    height: 24px;
+    width: 24px;
+    border: solid 1px var(--fg);
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 0;
+    padding: 0;
+    box-shadow: 0 2px 5px var(--fg);
+    background-color: red;
+    display: none;
+}
+
+button#back svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0 auto;
+}
+
+button#reset {
+    position: absolute;
+    left: 52px;
+    top: 20px;
+    height: 24px;
+    width: 24px;
+    border: solid 1px var(--fg);
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 0;
+    padding: 0;
+    box-shadow: 0 2px 5px var(--fg);
+    background-color: var(--end);
+    display: none;
+}
+
+button#reset svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    margin: 0 auto;
+}
+
+button#back.visible {
+    display: block;
+}
+
+button#play {
+    background-color: var(--start);
+}
+
+button#share {
+    background-color: var(--start);
+}
+
+button#copy {
+    background-color: var(--misc);
+}
+
+button#practice {
+    background-color: var(--end);
+}
+
+button#history {
+    background-color: var(--misc);
+}
+
+.board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 42px);
+    gap: 8px;
+    padding: 20px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.cell {
+    box-sizing: border-box;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--fg);
+    border-radius: 8px;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    text-transform: uppercase;
+}
+
+.cell.current {
+    outline: 1px dashed var(--fg);
+    outline-offset: 2px;
+}
+
+#keyboard {
+    width: 500px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    width: 100%;
+}
+
+.spacer {
+    flex: 0.5;
+}
+
+.key {
+    flex: 1;
+    height: 42px;
+    border: solid 1px var(--fg);
+    border-radius: 8px;
+    background-color: white;
+    color: black;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 2px 5px var(--fg);
+    text-transform: uppercase;
+}
+
+button:hover {
+    filter: brightness(0.9);
+    box-shadow: none;
+}
+
+.key-wide {
+    flex: 1.5;
+}
+
+.start {
+    background: var(--start)
+}
+
+.end {
+    background: var(--end);
+}
+
+.misc {
+    background: var(--misc);
+}
+
+h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    font-weight: normal;
+    letter-spacing: 0.2em;    
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.stats dt {
+    text-align: right;
+}
+
+.stats dd {
+    margin: 0;
+    text-align: left;
+}
+
+#history-list {
+    width: 100%;
+    margin: 0;
+    padding: 12px;
+    text-align: left;
+    text-transform: none;
+    display: flex;
+    flex-direction: column;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.history-entry {
+    white-space: normal;
+    margin-bottom: 8px;
+}
+
+.history-top,
+.history-bottom {
+    display: inline;
+}
+
+.history-bottom {
+    display: block;
+}
+
+.history-bottom::before {
+    content: "";
+}

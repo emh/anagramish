@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>anagramish</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <h1>anagramish</h1>
+            <button id="back" aria-label="Home">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house" aria-hidden="true">
+                    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+                    <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                </svg>
+            </button>
+            <button id="reset" aria-label="Reset practice">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw" aria-hidden="true">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+            </button>
+            <div id="message"></div>
+        </header>
+        <main></main>
+        <footer>
+        </footer>
+    </div>
+
+    <template id="welcome-template">
+        <section>
+            <p>Welcome to Anagramish!</p>
+            
+            <div class="buttons">
+                <button id="play">Play</button>
+                <button id="practice">Practice</button>
+                <button id="history">History</button>
+            </div>
+            
+            <p>Build a ladder from the blue start word to the orange end word.</p>
+            <p>Each step must be a valid 5-letter word that differs from the previous word by exactly one letter, with letters allowed in any order.</p>
+            
+            <div class="board"><div class="start cell">c</div><div class="start cell">a</div><div class="start cell">u</div><div class="start cell">l</div><div class="start cell">k</div><div class="start cell">l</div><div class="start cell">a</div><div class="start cell">c</div><div class="start cell">k</div><div class="end cell">s</div><div class="end cell">h</div><div class="start cell">a</div><div class="start cell">c</div><div class="start cell">k</div><div class="end cell">s</div><div class="end cell">s</div><div class="end cell">h</div><div class="start cell">a</div><div class="start cell">k</div><div class="end cell">e</div><div class="end cell">s</div><div class="end cell">h</div><div class="start cell">a</div><div class="end cell">r</div><div class="end cell">e</div><div class="end cell">h</div><div class="end cell">o</div><div class="end cell">r</div><div class="end cell">s</div><div class="end cell">e</div></div>
+            
+            <p>Sometimes you can solve it using only letters from the start and end words.</p>
+            <p>Other times you need to bring in outside letters to complete the ladder.</p>
+
+            <div class="board"><div class="start cell">m</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">n</div><div class="start cell">d</div><div class="end cell">r</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">n</div><div class="start cell">d</div><div class="end cell">p</div><div class="end cell">r</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">d</div><div class="end cell">p</div><div class="end cell">r</div><div class="start cell">u</div><div class="start cell">d</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="start cell">d</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="end cell">c</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="end cell">c</div><div class="end cell">k</div></div>
+        </section>
+    </template>
+
+    <template id="finish-template">
+        <section>
+            <p>Congratulations!</p>
+            <div id="board-container"></div>
+            <h2 id="puzzle-number"></h2>
+            <dl class="stats">
+                <dt>Time:</dt> <dd id="time"></dd>
+                <dt>Words:</dt> <dd id="words"></dd>
+                <dt>Mistakes:</dt> <dd id="mistakes"></dd>
+            </dl>
+
+            <div class="buttons">
+                <button id="share">Share</button>
+                <button id="copy">Copy</button>
+                <button id="practice">Practice</button>
+                <button id="history">History</button>
+            </div>
+        </section>
+    </template>
+
+    <template id="history-template">
+        <section class="history-screen">
+            <h2>History</h2>
+            <div id="history-list"></div>
+        </section>
+    </template>
+
+    <template id="keyboard-template">
+        <div id="keyboard" role="group">
+            <div class="row">
+                <button class="key" data-key="q">Q</button>
+                <button class="key" data-key="w">W</button>
+                <button class="key" data-key="e">E</button>
+                <button class="key" data-key="r">R</button>
+                <button class="key" data-key="t">T</button>
+                <button class="key" data-key="y">Y</button>
+                <button class="key" data-key="u">U</button>
+                <button class="key" data-key="i">I</button>
+                <button class="key" data-key="o">O</button>
+                <button class="key" data-key="p">P</button>
+            </div>
+            <div class="row">
+                <span class="spacer"></span>
+                <button class="key" data-key="a">A</button>
+                <button class="key" data-key="s">S</button>
+                <button class="key" data-key="d">D</button>
+                <button class="key" data-key="f">F</button>
+                <button class="key" data-key="g">G</button>
+                <button class="key" data-key="h">H</button>
+                <button class="key" data-key="j">J</button>
+                <button class="key" data-key="k">K</button>
+                <button class="key" data-key="l">L</button>
+                <span class="spacer"></span>
+            </div>
+            <div class="row">
+                <button class="key key-wide" id="enter" data-key="Enter">⏎</button>
+                <button class="key" data-key="z">Z</button>
+                <button class="key" data-key="x">X</button>
+                <button class="key" data-key="c">C</button>
+                <button class="key" data-key="v">V</button>
+                <button class="key" data-key="b">B</button>
+                <button class="key" data-key="n">N</button>
+                <button class="key" data-key="m">M</button>
+                <button class="key key-wide" id="backspace" data-key="Backspace">⌫</button>
+            </div>
+        </div>
+    </template>
+
+    <script type="module" src="main.mjs"></script>
+    <script async src="//static.getclicky.com/101395724.js"></script>
+</body>
+
+</html>
