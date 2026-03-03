@@ -7,6 +7,7 @@ const STATES = {
     FINISHED: 'finished',
     HISTORY: 'history'
 };
+const GAME_VERSION = 2;
 
 const state = {
     puzzleNumber: 1,
@@ -113,12 +114,15 @@ const formatHistoryEntry = (date, game) => {
     const start = (game?.pair?.[0] ?? '').toUpperCase();
     const end = (game?.pair?.[1] ?? '').toUpperCase();
     const time = formatElapsedTime(game?.numSeconds ?? 0);
-    const words = Array.isArray(game?.words) ? game.words.length : 0;
+    const isVersion2 = game?.version === GAME_VERSION;
+    const rawWords = Array.isArray(game?.words) ? game.words.length : 0;
+    const words = isVersion2 ? rawWords : Math.max(0, rawWords - 2);
     const mistakes = Number.isFinite(game?.mistakes) ? game.mistakes : 0;
+    const details = isVersion2 ? `${time} ${words} words ${mistakes} mistakes` : `${time} ${words} words`;
 
     return {
         top: `${date} #${puzzleNumber} ${start} ${end}`,
-        bottom: `${time} ${words} words ${mistakes} mistakes`
+        bottom: details
     };
 };
 
@@ -145,17 +149,24 @@ export const getHistory = () => {
 
 export const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
 
+const isVersion2Game = (game) => isPlainObject(game) && game.version === GAME_VERSION;
+
 const loadGame = () => {
+    console.log('Loading game', { isPractice: state.isPractice, dailyKey: state.dailyKey });
     if (state.isPractice) {
         const game = readStorageJSON('practice');
-        return isPlainObject(game) ? game : null;
+        return isVersion2Game(game) ? game : null;
     }
 
     if (!state.dailyKey) {
         return undefined;
     }
 
-    return getHistory()[state.dailyKey];
+    const game = getHistory()[state.dailyKey];
+
+    console.log(state.dailyKey, game);
+
+    return isVersion2Game(game) ? game : null;
 };
 
 const initTodaysGame = (dailyKey) => {
@@ -163,6 +174,7 @@ const initTodaysGame = (dailyKey) => {
     const pair = todaysPair(puzzleNumber);
 
     return {
+        version: GAME_VERSION,
         pair,
         puzzleNumber,
         state: STATES.PLAYING,
@@ -173,6 +185,7 @@ const initTodaysGame = (dailyKey) => {
 };
 
 const initPracticeGame = () => ({
+    version: GAME_VERSION,
     pair: randomPair(),
     state: STATES.PLAYING,
     numSeconds: 0,
@@ -209,6 +222,7 @@ const hydrateGameState = (game, isPractice) => {
 };
 
 const startGame = (isPractice) => {
+    console.log('Starting game', { isPractice });
     if (!isDataLoaded) {
         renderMessage('Loading word data...');
         return;
@@ -226,6 +240,7 @@ const startGame = (isPractice) => {
     let game = loadGame();
 
     if (!game || (isPractice && game.state === STATES.FINISHED)) {
+        console.log('Initializing new game');
         game = isPractice ? initPracticeGame() : initTodaysGame(state.dailyKey);
         saveGame(game);
     }
@@ -234,6 +249,9 @@ const startGame = (isPractice) => {
 };
 
 const saveGame = (game) => {
+    console.log('Saving game', game);
+    game.version = GAME_VERSION;
+
     if (state.isPractice) {
         localStorage.setItem('practice', JSON.stringify(game));
         return;
@@ -252,6 +270,7 @@ const saveGame = (game) => {
 
 const updateSavedGame = () => {
     const game = loadGame() ?? {
+        version: GAME_VERSION,
         pair: state.pair,
         puzzleNumber: state.puzzleNumber,
         state: state.state,
@@ -260,6 +279,7 @@ const updateSavedGame = () => {
         mistakes: state.mistakes
     };
 
+    game.version = GAME_VERSION;
     game.pair = state.pair;
     game.puzzleNumber = state.puzzleNumber;
     game.numSeconds = state.numSeconds;
