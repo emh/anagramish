@@ -23,6 +23,7 @@ const state = {
 const rnd = (n) => Math.floor(Math.random() * n);
 
 let dictionary = [];
+let dictionarySet = new Set();
 let pairs = [];
 let isDataLoaded = false;
 
@@ -44,6 +45,7 @@ const loadWordData = async () => {
         ]);
 
         dictionary = dictionaryText.split('\n');
+        dictionarySet = new Set(dictionary);
         pairs = pairsText.split('\n').map((line) => line.split(','));
         isDataLoaded = true;
         render();
@@ -349,7 +351,7 @@ const handleKey = (key) => {
     } else if (normalizedKey === 'Enter' && state.position.x === 5) {
         const { y } = state.position;
 
-        if (!dictionary.includes(state.board[y].join(''))) {
+        if (!dictionarySet.has(state.board[y].join(''))) {
             renderMessage(`${state.board[y].join('')} is not in our dictionary`);
             state.mistakes += 1;
             state.board.splice(state.position.y, 1, emptyRow());
