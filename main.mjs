@@ -89,13 +89,33 @@ const formatHistoryEntry = (date, game) => {
     };
 };
 
-export const getHistory = () => JSON.parse(localStorage.getItem('history')) ?? {};
+const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const readStorageJSON = (storageKey) => {
+    const json = localStorage.getItem(storageKey);
+
+    if (json === null) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+};
+
+export const getHistory = () => {
+    const history = readStorageJSON('history');
+    return isPlainObject(history) ? history : {};
+};
 
 export const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
 
 const loadGame = () => {
     if (state.isPractice) {
-        return JSON.parse(localStorage.getItem('practice'));
+        const game = readStorageJSON('practice');
+        return isPlainObject(game) ? game : null;
     }
 
     if (!state.dailyKey) {
