@@ -12,6 +12,7 @@ const state = {
     puzzleNumber: 1,
     pair: [[], []],
     isPractice: false,
+    dailyKey: null,
     mistakes: 0,
     board: emptyBoard(),
     position: { x: 0, y: 1 },
@@ -97,11 +98,15 @@ const loadGame = () => {
         return JSON.parse(localStorage.getItem('practice'));
     }
 
-    return getHistory()[key()];
+    if (!state.dailyKey) {
+        return undefined;
+    }
+
+    return getHistory()[state.dailyKey];
 };
 
-const initTodaysGame = () => {
-    const puzzleNumber = calcIndex(new Date(key()), pairs.length);
+const initTodaysGame = (dailyKey) => {
+    const puzzleNumber = calcIndex(new Date(dailyKey), pairs.length);
     const pair = todaysPair(puzzleNumber);
 
     return {
@@ -158,11 +163,12 @@ const startGame = (isPractice) => {
     }
 
     state.isPractice = isPractice;
+    state.dailyKey = isPractice ? null : key();
 
     let game = loadGame();
 
-    if (!game) {
-        game = isPractice ? initPracticeGame() : initTodaysGame();
+    if (!game || (isPractice && game.state === STATES.FINISHED)) {
+        game = isPractice ? initPracticeGame() : initTodaysGame(state.dailyKey);
         saveGame(game);
     }
 
@@ -175,20 +181,34 @@ const saveGame = (game) => {
         return;
     }
 
+    if (!state.dailyKey) {
+        return;
+    }
+
     const history = getHistory();
 
-    history[key()] = game;
+    history[state.dailyKey] = game;
 
     putHistory(history);
 };
 
 const updateSavedGame = () => {
-    const game = loadGame();
+    const game = loadGame() ?? {
+        pair: state.pair,
+        puzzleNumber: state.puzzleNumber,
+        state: state.state,
+        numSeconds: state.numSeconds,
+        words: [],
+        mistakes: state.mistakes
+    };
 
     game.pair = state.pair;
     game.puzzleNumber = state.puzzleNumber;
     game.numSeconds = state.numSeconds;
     game.state = state.state;
+    if (!Array.isArray(game.words)) {
+        game.words = [];
+    }
 
     state.board.slice(1, -1).forEach((row, i) => {
         if (state.position === null || i < state.position.y - 1) {
