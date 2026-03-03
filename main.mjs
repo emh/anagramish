@@ -8,10 +8,20 @@ const STATES = {
     HISTORY: 'history'
 };
 const GAME_VERSION = 2;
+const HARD_MODE_STORAGE_KEY = 'hard-mode';
+const BOARD_ROW_SIZE = 50;
+const BOARD_PADDING_TOP = 20;
+const CELL_SIZE = 42;
+const TRASH_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
+
+const loadHardModeSetting = () => localStorage.getItem(HARD_MODE_STORAGE_KEY) === 'true';
+
+const saveHardModeSetting = (hardMode) => localStorage.setItem(HARD_MODE_STORAGE_KEY, hardMode ? 'true' : 'false');
 
 const state = {
     puzzleNumber: 1,
     pair: [[], []],
+    hardMode: loadHardModeSetting(),
     isPractice: false,
     dailyKey: null,
     mistakes: 0,
@@ -81,8 +91,10 @@ const formatElapsedTime = (numSeconds) => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
+const formatGameTime = () => `${formatElapsedTime(state.numSeconds)}${state.hardMode ? ' 💪' : ''}`;
+
 const getShareText = () => [
-    `Anagramish #${state.puzzleNumber} in ${formatElapsedTime(state.numSeconds)}`,
+    `Anagramish #${state.puzzleNumber} in ${formatGameTime()}`,
     ...state.board.map((row) => row.map((c) => state.pair[0].includes(c) ? '🟦' : state.pair[1].includes(c) ? '🟧' : '⬜').join(''))
 ].join('\n');
 
@@ -152,7 +164,6 @@ export const putHistory = (history) => localStorage.setItem('history', JSON.stri
 const isVersion2Game = (game) => isPlainObject(game) && game.version === GAME_VERSION;
 
 const loadGame = () => {
-    console.log('Loading game', { isPractice: state.isPractice, dailyKey: state.dailyKey });
     if (state.isPractice) {
         const game = readStorageJSON('practice');
         return isVersion2Game(game) ? game : null;
@@ -163,8 +174,6 @@ const loadGame = () => {
     }
 
     const game = getHistory()[state.dailyKey];
-
-    console.log(state.dailyKey, game);
 
     return isVersion2Game(game) ? game : null;
 };
@@ -197,21 +206,23 @@ const hydrateGameState = (game, isPractice) => {
     state.puzzleNumber = game.puzzleNumber ?? (isPractice ? state.puzzleNumber : 1);
     state.pair = game.pair;
     state.board = resetBoard(state.pair);
+    const maxLoadedWords = state.hardMode ? 4 : Number.POSITIVE_INFINITY;
+    const words = Array.isArray(game.words) ? game.words.slice(0, maxLoadedWords) : [];
 
-    let i = game.words.length - 3;
+    let i = words.length - 3;
 
     if (game.state === STATES.FINISHED) i--;
 
-    while (i > 0) {
+    while (!state.hardMode && i > 0) {
         state.board.splice(state.board.length - 1, 0, emptyRow());
         i -= 1;
     }
 
-    game.words.forEach((word, i) => {
+    words.forEach((word, i) => {
         state.board[i + 1] = word.split('');
     });
 
-    state.position = { x: 0, y: game.words.length + 1 };
+    state.position = { x: 0, y: words.length + 1 };
     state.state = game.state === STATES.FINISHED ? STATES.FINISHED : STATES.PLAYING;
     state.numSeconds = game.numSeconds;
     state.mistakes = game.mistakes;
@@ -222,7 +233,6 @@ const hydrateGameState = (game, isPractice) => {
 };
 
 const startGame = (isPractice) => {
-    console.log('Starting game', { isPractice });
     if (!isDataLoaded) {
         renderMessage('Loading word data...');
         return;
@@ -240,7 +250,6 @@ const startGame = (isPractice) => {
     let game = loadGame();
 
     if (!game || (isPractice && game.state === STATES.FINISHED)) {
-        console.log('Initializing new game');
         game = isPractice ? initPracticeGame() : initTodaysGame(state.dailyKey);
         saveGame(game);
     }
@@ -249,7 +258,6 @@ const startGame = (isPractice) => {
 };
 
 const saveGame = (game) => {
-    console.log('Saving game', game);
     game.version = GAME_VERSION;
 
     if (state.isPractice) {
@@ -284,13 +292,11 @@ const updateSavedGame = () => {
     game.puzzleNumber = state.puzzleNumber;
     game.numSeconds = state.numSeconds;
     game.state = state.state;
-    if (!Array.isArray(game.words)) {
-        game.words = [];
-    }
+    game.words = [];
 
     state.board.slice(1, -1).forEach((row, i) => {
         if (state.position === null || i < state.position.y - 1) {
-            game.words[i] = row.join('');
+            game.words.push(row.join(''));
         }
     });
 
@@ -335,12 +341,23 @@ const renderMessage = (message) => {
     el._timer = setTimeout(() => el.classList.remove('show'), 3000);
 };
 
+const isLetter = (key) => key.length === 1 && key >= 'a' && key <= 'z';
+const isHardModeAllowedLetter = (letter) => state.pair[0].includes(letter) || state.pair[1].includes(letter);
+
 const colorKeyboard = () => {
     get('.key').forEach((el) => {
         const key = el.dataset.key;
+        el.disabled = false;
 
         if (key === 'Backspace' || key === 'Enter') {
             el.classList.add('special');
+            return;
+        }
+
+        if (state.hardMode && !isHardModeAllowedLetter(key)) {
+            el.classList.add('invalid');
+            el.disabled = true;
+            return;
         } else if (state.pair[0].includes(key)) {
             el.classList.add('start');
         } else if (state.pair[1].includes(key)) {
@@ -363,7 +380,11 @@ const handleKey = (key) => {
             state.board[state.position.y][state.position.x - 1] = null;
             state.position.x -= 1;
         }
-    } else if (normalizedKey >= 'a' && normalizedKey <= 'z' && state.position.x <= 4) {
+    } else if (isLetter(normalizedKey) && state.position.x <= 4) {
+        if (state.hardMode && !isHardModeAllowedLetter(normalizedKey)) {
+            return;
+        }
+
         const { x, y } = state.position;
 
         state.board[y][x] = normalizedKey;
@@ -384,11 +405,16 @@ const handleKey = (key) => {
         } else if (y === state.board.length - 2 && compareWords(state.board[y], state.board[y + 1]) === 4) {
             state.position = null;
             state.state = STATES.FINISHED;
+        } else if (state.hardMode && y === state.board.length - 2) {
+            renderMessage(`${state.board[y].join('')} must differ by one letter from ${state.board[y + 1].join('')}`);
+            state.mistakes += 1;
+            state.board.splice(state.position.y, 1, emptyRow());
+            state.position.x = 0;
         } else {
             state.position.x = 0;
             state.position.y += 1;
 
-            if (state.position.y > state.board.length - 2) {
+            if (!state.hardMode && state.position.y > state.board.length - 2) {
                 state.board.splice(state.board.length - 1, 0, emptyRow());
             }
         }
@@ -396,6 +422,22 @@ const handleKey = (key) => {
         updateSavedGame();
     }
 
+    render();
+};
+
+const deleteLastCompletedWord = () => {
+    if (!state.hardMode || state.state !== STATES.PLAYING || state.position === null || state.position.y <= 1) {
+        return;
+    }
+
+    const currentY = state.position.y;
+    const previousY = currentY - 1;
+
+    state.board[currentY] = emptyRow();
+    state.board[previousY] = emptyRow();
+    state.position = { x: 0, y: previousY };
+
+    updateSavedGame();
     render();
 };
 
@@ -456,6 +498,7 @@ const renderWelcome = (app) => {
     app.appendChild(template.content.cloneNode(true));
     get('#play').disabled = !isDataLoaded;
     get('#practice').disabled = !isDataLoaded;
+    get('#hard-mode').checked = state.hardMode;
 
     get('#play').addEventListener('click', () => {
         startGame(false);
@@ -469,6 +512,11 @@ const renderWelcome = (app) => {
         state.state = STATES.HISTORY;
         render();
     });
+
+    get('#hard-mode').addEventListener('change', (e) => {
+        state.hardMode = e.target.checked;
+        saveHardModeSetting(state.hardMode);
+    });
 };
 
 const renderFinish = (app) => {
@@ -479,7 +527,7 @@ const renderFinish = (app) => {
     app.innerHTML = '';
     app.appendChild(template.content.cloneNode(true));
 
-    get('#time').textContent = formatElapsedTime(state.numSeconds);
+    get('#time').textContent = formatGameTime();
     get('#mistakes').textContent = state.mistakes;
     get('#words').textContent = state.board.length - 2;
     get('#puzzle-number').textContent = `#${state.puzzleNumber}`;
@@ -582,8 +630,19 @@ const render = () => {
     app.innerHTML = '';
 
     const boardEl = renderBoard(state.board);
+    const boardContainer = set('div.board-container', {}, boardEl);
 
-    app.appendChild(boardEl);
+    if (state.hardMode && state.position !== null && state.position.y > 1) {
+        const deleteButtonTop = BOARD_PADDING_TOP + ((state.position.y - 1) * BOARD_ROW_SIZE) + (CELL_SIZE / 2);
+        const deleteWordButton = set(
+            'button.delete-word',
+            { type: 'button', style: `top: ${deleteButtonTop}px`, ariaLabel: 'Delete previous word', title: 'Delete previous word', innerHTML: TRASH_ICON_SVG }
+        );
+        deleteWordButton.addEventListener('click', deleteLastCompletedWord);
+        boardContainer.appendChild(deleteWordButton);
+    }
+
+    app.appendChild(boardContainer);
 
     app.scrollTo(0, app.scrollHeight);
 };
