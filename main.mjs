@@ -294,21 +294,23 @@ const colorKeyboard = () => {
 };
 
 const handleKey = (key) => {
+    const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
+
     if (state.state !== STATES.PLAYING || state.position === null) {
         return;
     }
 
-    if (key === 'Backspace') {
+    if (normalizedKey === 'Backspace') {
         if (state.position.x > 0) {
             state.board[state.position.y][state.position.x - 1] = null;
             state.position.x -= 1;
         }
-    } else if (key >= 'a' && key <= 'z' && state.position.x <= 4) {
+    } else if (normalizedKey >= 'a' && normalizedKey <= 'z' && state.position.x <= 4) {
         const { x, y } = state.position;
 
-        state.board[y][x] = key;
+        state.board[y][x] = normalizedKey;
         state.position.x += 1;
-    } else if (key === 'Enter' && state.position.x === 5) {
+    } else if (normalizedKey === 'Enter' && state.position.x === 5) {
         const { y } = state.position;
 
         if (!dictionary.includes(state.board[y].join(''))) {
