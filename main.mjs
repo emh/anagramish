@@ -22,8 +22,35 @@ const state = {
 
 const rnd = (n) => Math.floor(Math.random() * n);
 
-const dictionary = await fetch('./dictionary.txt').then((r) => r.text()).then((text) => text.split('\n'));
-const pairs = await fetch('./pairs.txt').then((r) => r.text()).then((text) => text.split('\n').map((line) => line.split(',')));
+let dictionary = [];
+let pairs = [];
+let isDataLoaded = false;
+
+const fetchText = async (path) => {
+    const response = await fetch(path);
+
+    if (!response.ok) {
+        throw new Error(`Unable to load ${path}`);
+    }
+
+    return response.text();
+};
+
+const loadWordData = async () => {
+    try {
+        const [dictionaryText, pairsText] = await Promise.all([
+            fetchText('./dictionary.txt'),
+            fetchText('./pairs.txt')
+        ]);
+
+        dictionary = dictionaryText.split('\n');
+        pairs = pairsText.split('\n').map((line) => line.split(','));
+        isDataLoaded = true;
+        render();
+    } catch {
+        renderMessage('Unable to load word data. Reload to try again.');
+    }
+};
 
 const key = () => {
     const d = new Date(); // local time
@@ -68,6 +95,10 @@ const copyShareText = async () => {
 const getSavedPuzzleNumber = (date, game) => {
     if (Number.isInteger(game?.puzzleNumber)) {
         return game.puzzleNumber;
+    }
+
+    if (pairs.length === 0) {
+        return 1;
     }
 
     const puzzleNumber = calcIndex(new Date(date), pairs.length);
@@ -176,6 +207,11 @@ const hydrateGameState = (game, isPractice) => {
 };
 
 const startGame = (isPractice) => {
+    if (!isDataLoaded) {
+        renderMessage('Loading word data...');
+        return;
+    }
+
     stopClock();
 
     if (document.activeElement instanceof HTMLElement) {
@@ -396,6 +432,8 @@ const renderWelcome = (app) => {
     const template = get('#welcome-template');
     app.innerHTML = '';
     app.appendChild(template.content.cloneNode(true));
+    get('#play').disabled = !isDataLoaded;
+    get('#practice').disabled = !isDataLoaded;
 
     get('#play').addEventListener('click', () => {
         startGame(false);
@@ -546,3 +584,4 @@ get('#reset').addEventListener('click', () => {
 setupHandlers();
 
 render();
+loadWordData();
