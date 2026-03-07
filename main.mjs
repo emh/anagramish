@@ -92,10 +92,13 @@ const formatElapsedTime = (numSeconds) => {
 };
 
 const formatGameTime = () => `${formatElapsedTime(state.numSeconds)}${state.hardMode ? ' 💪' : ''}`;
+const formatShareDate = (dateKey) => dateKey.replace(/-/g, '.');
+const getShareSquare = (char) => state.pair[0].includes(char) ? '🟦' : state.pair[1].includes(char) ? '🟧' : '⬜';
 
 const getShareText = () => [
-    `Anagramish #${state.puzzleNumber} in ${formatGameTime()}`,
-    ...state.board.map((row) => row.map((c) => state.pair[0].includes(c) ? '🟦' : state.pair[1].includes(c) ? '🟧' : '⬜').join(''))
+    `Anagramish ${formatShareDate(state.dailyKey ?? key())}`,
+    `#${state.puzzleNumber} in ${formatGameTime()}`,
+    ...state.board.slice(1, -1).map((row) => row.map(getShareSquare).join(''))
 ].join('\n');
 
 const copyShareText = async () => {
@@ -343,6 +346,16 @@ const renderMessage = (message) => {
 
 const isLetter = (key) => key.length === 1 && key >= 'a' && key <= 'z';
 const isHardModeAllowedLetter = (letter) => state.pair[0].includes(letter) || state.pair[1].includes(letter);
+const getHardModeEndLetterCount = (word) => compareWords(word, state.pair[1]);
+const isValidHardModeProgression = (word, rowIndex) => getHardModeEndLetterCount(word) === rowIndex;
+const getHardModeProgressMessage = (word, rowIndex) => {
+    const endLetters = rowIndex;
+    const startLetters = word.length - endLetters;
+    const orangeLabel = endLetters === 1 ? 'orange letter' : 'orange letters';
+    const blueLabel = startLetters === 1 ? 'blue letter' : 'blue letters';
+
+    return `${word.join('')} must have ${startLetters} ${blueLabel} and ${endLetters} ${orangeLabel}`;
+};
 
 const colorKeyboard = () => {
     get('.key').forEach((el) => {
@@ -402,11 +415,16 @@ const handleKey = (key) => {
             state.mistakes += 1;
             state.board.splice(state.position.y, 1, emptyRow());
             state.position.x = 0;
+        } else if (state.hardMode && !isValidHardModeProgression(state.board[y], y)) {
+            renderMessage(getHardModeProgressMessage(state.board[y], y));
+            state.mistakes += 1;
+            state.board.splice(state.position.y, 1, emptyRow());
+            state.position.x = 0;
         } else if (y === state.board.length - 2 && compareWords(state.board[y], state.board[y + 1]) === 4) {
             state.position = null;
             state.state = STATES.FINISHED;
         } else if (state.hardMode && y === state.board.length - 2) {
-            renderMessage(`${state.board[y].join('')} must differ by one letter from ${state.board[y + 1].join('')}`);
+            renderMessage(getHardModeProgressMessage(state.board[y], y));
             state.mistakes += 1;
             state.board.splice(state.position.y, 1, emptyRow());
             state.position.x = 0;
