@@ -173,7 +173,7 @@ section.history-screen {
     margin: 0;
 }
 
-#play, #share, #copy, #practice, #history {
+#play, #share, #copy, #practice, #history, #past-prev, #past-next {
     flex: 1;
     height: 32px;
     border: solid 1px var(--fg);
@@ -256,6 +256,17 @@ button#practice {
 
 button#history {
     background-color: var(--misc);
+}
+
+button#past-prev,
+button#past-next {
+    background-color: var(--start);
+}
+
+button#past-prev:disabled,
+button#past-next:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 
 .board {
@@ -442,4 +453,8 @@ h2 {
 
 .history-bottom::before {
     content: "";
+}
+
+a.history-date {
+    color: inherit;
 }

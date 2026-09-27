@@ -5,7 +5,8 @@ const STATES = {
     WELCOME: 'welcome',
     PLAYING: 'playing',
     FINISHED: 'finished',
-    HISTORY: 'history'
+    HISTORY: 'history',
+    PAST_GAME: 'past-game'
 };
 const GAME_VERSION = 2;
 const HARD_MODE_STORAGE_KEY = 'hard-mode';
@@ -28,7 +29,8 @@ const state = {
     board: emptyBoard(),
     position: { x: 0, y: 1 },
     state: STATES.WELCOME,
-    numSeconds: 0
+    numSeconds: 0,
+    pastGameKey: null
 };
 
 const rnd = (n) => Math.floor(Math.random() * n);
@@ -136,7 +138,8 @@ const formatHistoryEntry = (date, game) => {
     const details = isVersion2 ? `${time} ${words} words ${mistakes} mistakes` : `${time} ${words} words`;
 
     return {
-        top: `${date} #${puzzleNumber} ${start} ${end}`,
+        date,
+        top: ` #${puzzleNumber} ${start} ${end}`,
         bottom: details
     };
 };
@@ -163,6 +166,22 @@ export const getHistory = () => {
 };
 
 export const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
+
+const toWord = (word) => Array.isArray(word) ? word.join('') : typeof word === 'string' ? word : '';
+
+// v2 games store only the words between start and end; v1 games stored the whole board
+const getPastBoard = (game) => {
+    const pair = Array.isArray(game?.pair) ? game.pair.map(toWord) : [];
+    const words = (Array.isArray(game?.words) ? game.words : []).map(toWord);
+    const isVersion2 = game?.version === GAME_VERSION;
+    const middle = (isVersion2 ? words : words.slice(1, -1)).filter((w) => w.length === 5);
+    const start = pair[0] ?? (isVersion2 ? '' : words[0] ?? '');
+    const end = pair[1] ?? (isVersion2 ? '' : words.at(-1) ?? '');
+
+    return [start, ...middle, end].map((w) => w.length === 5 ? w.split('') : emptyRow());
+};
+
+const getPastPair = (game, board) => [board[0].join(''), board.at(-1).join('')];
 
 const isVersion2Game = (game) => isPlainObject(game) && game.version === GAME_VERSION;
 
@@ -586,6 +605,65 @@ const renderFinish = (app) => {
     }
 };
 
+const getSortedHistoryKeys = (history) => Object.keys(history).sort((a, b) => b.localeCompare(a));
+
+const showPastGame = (date) => {
+    state.state = STATES.PAST_GAME;
+    state.pastGameKey = date;
+    render();
+};
+
+const renderPastGameLink = (date) => {
+    const link = set('a.history-date', { href: '#' }, date);
+
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        showPastGame(date);
+    });
+
+    return link;
+};
+
+const renderPastGame = (app) => {
+    stopClock();
+    killKeyboard();
+
+    const template = get('#past-game-template');
+    app.innerHTML = '';
+    app.appendChild(template.content.cloneNode(true));
+
+    const history = getHistory();
+    const date = state.pastGameKey;
+    const game = history[date];
+    const keys = getSortedHistoryKeys(history);
+    const index = keys.indexOf(date);
+    const older = keys[index + 1];
+    const newer = index > 0 ? keys[index - 1] : undefined;
+
+    get('#past-date').textContent = date;
+
+    get('#past-prev').disabled = !older;
+    get('#past-next').disabled = !newer;
+    get('#past-prev').addEventListener('click', () => older && showPastGame(older));
+    get('#past-next').addEventListener('click', () => newer && showPastGame(newer));
+    get('#history').addEventListener('click', () => {
+        state.state = STATES.HISTORY;
+        render();
+    });
+
+    if (!game) {
+        get('#board-container').textContent = 'No game found.';
+        return;
+    }
+
+    const board = getPastBoard(game);
+    const { top, bottom } = formatHistoryEntry(date, game);
+
+    get('#puzzle-number').textContent = top.trim();
+    get('#past-details').textContent = game.state === STATES.FINISHED || game.finished ? bottom : `${bottom} (unfinished)`;
+    get('#board-container').appendChild(renderBoard(board, getPastPair(game, board), null));
+};
+
 const renderHistory = (app) => {
     stopClock();
     killKeyboard();
@@ -595,9 +673,7 @@ const renderHistory = (app) => {
     app.appendChild(template.content.cloneNode(true));
 
     const history = getHistory();
-    const entries = Object.entries(history)
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([date, game]) => formatHistoryEntry(date, game));
+    const entries = getSortedHistoryKeys(history).map((date) => formatHistoryEntry(date, history[date]));
 
     const list = get('#history-list');
 
@@ -611,19 +687,19 @@ const renderHistory = (app) => {
             set(
                 'div.history-entry',
                 {},
-                set('span.history-top', {}, entry.top),
+                set('span.history-top', {}, renderPastGameLink(entry.date), entry.top),
                 set('span.history-bottom', {}, entry.bottom)
             )
         );
     });
 };
 
-const getPositionClass = (y, x) => state.position?.x === x && state.position?.y === y ? 'current' : '';
-const getCharClass = (char) => char === null ? 'normal' : state.pair[0].includes(char) ? 'start' : state.pair[1].includes(char) ? 'end' : 'misc';
+const getPositionClass = (position, y, x) => position?.x === x && position?.y === y ? 'current' : '';
+const getCharClass = (pair, char) => char === null ? 'normal' : pair[0].includes(char) ? 'start' : pair[1].includes(char) ? 'end' : 'misc';
 
-const renderCell = (char, y, x) => set(`div.${[getPositionClass(y, x), getCharClass(char), 'cell'].join('.')}`, {}, char);
-const renderRow = (chars, y) => chars.map((c, x) => renderCell(c, y, x));
-const renderBoard = (board) => set('div.board', {}, ...board.flatMap((row, y) => renderRow(row, y)));
+const renderCell = (char, y, x, pair, position) => set(`div.${[getPositionClass(position, y, x), getCharClass(pair, char), 'cell'].join('.')}`, {}, char);
+const renderRow = (chars, y, pair, position) => chars.map((c, x) => renderCell(c, y, x, pair, position));
+const renderBoard = (board, pair = state.pair, position = state.position) => set('div.board', {}, ...board.flatMap((row, y) => renderRow(row, y, pair, position)));
 
 const renderHeaderButtons = () => {
     get('#back').style.display = state.state === STATES.WELCOME ? 'none' : 'inline-block';
@@ -642,6 +718,9 @@ const render = () => {
         return;
     } else if (state.state === STATES.HISTORY) {
         renderHistory(app);
+        return;
+    } else if (state.state === STATES.PAST_GAME) {
+        renderPastGame(app);
         return;
     }
 
