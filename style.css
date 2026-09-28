@@ -173,7 +173,7 @@ section.history-screen {
     margin: 0;
 }
 
-#play, #share, #copy, #practice, #history, #past-prev, #past-next {
+#play, #share, #copy, #practice, #history, #past-prev, #past-next, #past-play {
     flex: 1;
     height: 32px;
     border: solid 1px var(--fg);
@@ -256,6 +256,15 @@ button#practice {
 
 button#history {
     background-color: var(--misc);
+}
+
+button#past-play {
+    background-color: var(--end);
+    margin-bottom: 12px;
+}
+
+button#past-play[hidden] {
+    display: none;
 }
 
 button#past-prev,
@@ -457,4 +466,8 @@ h2 {
 
 a.history-date {
     color: inherit;
+}
+
+.history-entry.missed {
+    opacity: 0.5;
 }

@@ -9,6 +9,7 @@ const STATES = {
     PAST_GAME: 'past-game'
 };
 const GAME_VERSION = 2;
+const FIRST_PUZZLE_DATE = '2026-03-02'; // v2 launch
 const HARD_MODE_STORAGE_KEY = 'hard-mode';
 const BOARD_ROW_SIZE = 50;
 const BOARD_PADDING_TOP = 20;
@@ -254,7 +255,7 @@ const hydrateGameState = (game, isPractice) => {
     render();
 };
 
-const startGame = (isPractice) => {
+const startGame = (isPractice, dailyKey = key()) => {
     if (!isDataLoaded) {
         renderMessage('Loading word data...');
         return;
@@ -267,7 +268,7 @@ const startGame = (isPractice) => {
     }
 
     state.isPractice = isPractice;
-    state.dailyKey = isPractice ? null : key();
+    state.dailyKey = isPractice ? null : dailyKey;
 
     let game = loadGame();
 
@@ -607,6 +608,27 @@ const renderFinish = (app) => {
 
 const getSortedHistoryKeys = (history) => Object.keys(history).sort((a, b) => b.localeCompare(a));
 
+// date keys are local YYYY-MM-DD strings; do the arithmetic in UTC so DST can't skip or repeat a day
+const addDays = (dateKey, n) => {
+    const d = new Date(`${dateKey}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+};
+
+// every day from today back to v2 launch (or an older saved game), newest first
+const getHistoryDays = (history) => {
+    const today = key();
+    const oldestSaved = getSortedHistoryKeys(history).at(-1) ?? FIRST_PUZZLE_DATE;
+    const oldest = oldestSaved < FIRST_PUZZLE_DATE ? oldestSaved : FIRST_PUZZLE_DATE;
+    const days = [];
+
+    for (let d = today; d >= oldest; d = addDays(d, -1)) {
+        days.push(d);
+    }
+
+    return days;
+};
+
 const showPastGame = (date) => {
     state.state = STATES.PAST_GAME;
     state.pastGameKey = date;
@@ -635,10 +657,9 @@ const renderPastGame = (app) => {
     const history = getHistory();
     const date = state.pastGameKey;
     const game = history[date];
-    const keys = getSortedHistoryKeys(history);
-    const index = keys.indexOf(date);
-    const older = keys[index + 1];
-    const newer = index > 0 ? keys[index - 1] : undefined;
+    const days = getHistoryDays(history);
+    const older = date > days.at(-1) ? addDays(date, -1) : undefined;
+    const newer = date < days[0] ? addDays(date, 1) : undefined;
 
     get('#past-date').textContent = date;
 
@@ -651,16 +672,40 @@ const renderPastGame = (app) => {
         render();
     });
 
+    const play = get('#past-play');
+
     if (!game) {
-        get('#board-container').textContent = 'No game found.';
+        if (!isDataLoaded) {
+            get('#board-container').textContent = 'Loading...';
+            return;
+        }
+
+        const { pair, puzzleNumber } = initTodaysGame(date);
+
+        get('#puzzle-number').textContent = `#${puzzleNumber} ${pair[0].toUpperCase()} ${pair[1].toUpperCase()}`;
+        get('#past-details').textContent = 'Not played';
+        get('#board-container').appendChild(renderBoard(resetBoard(pair), pair, null));
+
+        play.textContent = 'Play';
+        play.hidden = false;
+        play.addEventListener('click', () => startGame(false, date));
         return;
     }
 
     const board = getPastBoard(game);
     const { top, bottom } = formatHistoryEntry(date, game);
+    const isFinished = game.state === STATES.FINISHED || game.finished;
 
     get('#puzzle-number').textContent = top.trim();
-    get('#past-details').textContent = game.state === STATES.FINISHED || game.finished ? bottom : `${bottom} (unfinished)`;
+    get('#past-details').textContent = isFinished ? bottom : `${bottom} (unfinished)`;
+
+    // only v2 games can be resumed; older formats would be overwritten by a fresh game
+    if (!isFinished && isVersion2Game(game)) {
+        play.hidden = false;
+        play.disabled = !isDataLoaded;
+        play.addEventListener('click', () => startGame(false, date));
+    }
+
     get('#board-container').appendChild(renderBoard(board, getPastPair(game, board), null));
 };
 
@@ -673,21 +718,23 @@ const renderHistory = (app) => {
     app.appendChild(template.content.cloneNode(true));
 
     const history = getHistory();
-    const entries = getSortedHistoryKeys(history).map((date) => formatHistoryEntry(date, history[date]));
-
     const list = get('#history-list');
 
-    if (entries.length === 0) {
-        list.textContent = 'No games yet.';
-        return;
-    }
+    getHistoryDays(history).forEach((date) => {
+        if (!history[date]) {
+            list.appendChild(
+                set('div.history-entry.missed', {}, set('span.history-top', {}, renderPastGameLink(date), ' not played'))
+            );
+            return;
+        }
 
-    entries.forEach((entry) => {
+        const entry = formatHistoryEntry(date, history[date]);
+
         list.appendChild(
             set(
                 'div.history-entry',
                 {},
-                set('span.history-top', {}, renderPastGameLink(entry.date), entry.top),
+                set('span.history-top', {}, renderPastGameLink(date), entry.top),
                 set('span.history-bottom', {}, entry.bottom)
             )
         );
