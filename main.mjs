@@ -168,6 +168,7 @@ export const getHistory = () => {
 
 export const putHistory = (history) => localStorage.setItem('history', JSON.stringify(history));
 
+const isFilledWord = (word) => /^[a-z]{5}$/.test(word);
 const toWord = (word) => Array.isArray(word) ? word.join('') : typeof word === 'string' ? word : '';
 
 // v2 games store only the words between start and end; v1 games stored the whole board
@@ -175,7 +176,7 @@ const getPastBoard = (game) => {
     const pair = Array.isArray(game?.pair) ? game.pair.map(toWord) : [];
     const words = (Array.isArray(game?.words) ? game.words : []).map(toWord);
     const isVersion2 = game?.version === GAME_VERSION;
-    const middle = (isVersion2 ? words : words.slice(1, -1)).filter((w) => w.length === 5);
+    const middle = (isVersion2 ? words : words.slice(1, -1)).filter(isFilledWord);
     const start = pair[0] ?? (isVersion2 ? '' : words[0] ?? '');
     const end = pair[1] ?? (isVersion2 ? '' : words.at(-1) ?? '');
 
@@ -185,6 +186,23 @@ const getPastBoard = (game) => {
 const getPastPair = (game, board) => [board[0].join(''), board.at(-1).join('')];
 
 const isVersion2Game = (game) => isPlainObject(game) && game.version === GAME_VERSION;
+
+const isVersion1Game = (game) => isPlainObject(game) && game.version === undefined && Array.isArray(game.pair);
+
+// v1 games stored the full board (start and end included) and only saved words once finished
+const upgradeVersion1Game = (date, game) => {
+    const board = getPastBoard(game);
+
+    return {
+        version: GAME_VERSION,
+        pair: getPastPair(game, board),
+        puzzleNumber: getSavedPuzzleNumber(date, game),
+        state: game.finished ? STATES.FINISHED : STATES.PLAYING,
+        numSeconds: Number.isFinite(game.numSeconds) ? game.numSeconds : 0,
+        words: board.slice(1, -1).map((row) => row.join('')),
+        mistakes: 0
+    };
+};
 
 const loadGame = () => {
     if (state.isPractice) {
@@ -197,6 +215,10 @@ const loadGame = () => {
     }
 
     const game = getHistory()[state.dailyKey];
+
+    if (isVersion1Game(game)) {
+        return upgradeVersion1Game(state.dailyKey, game);
+    }
 
     return isVersion2Game(game) ? game : null;
 };
@@ -699,8 +721,7 @@ const renderPastGame = (app) => {
     get('#puzzle-number').textContent = top.trim();
     get('#past-details').textContent = isFinished ? bottom : `${bottom} (unfinished)`;
 
-    // only v2 games can be resumed; older formats would be overwritten by a fresh game
-    if (!isFinished && isVersion2Game(game)) {
+    if (!isFinished && (isVersion2Game(game) || isVersion1Game(game))) {
         play.hidden = false;
         play.disabled = !isDataLoaded;
         play.addEventListener('click', () => startGame(false, date));
