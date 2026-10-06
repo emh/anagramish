@@ -34,37 +34,35 @@ const state = {
     pastGameKey: null
 };
 
-const rnd = (n) => Math.floor(Math.random() * n);
-
-let dictionary = [];
-let dictionarySet = new Set();
-let pairs = [];
+let pairCount = 0;
 let isDataLoaded = false;
-
-const fetchText = async (path) => {
-    const response = await fetch(path);
-
-    if (!response.ok) {
-        throw new Error(`Unable to load ${path}`);
-    }
-
-    return response.text();
+let startingGame = false;
+let checkingGuess = false;
+const attribution = () => {
+    const params = new URLSearchParams(location.search);
+    return {source:params.get('utm_source'),medium:params.get('utm_medium'),campaign:params.get('utm_campaign'),referrer:document.referrer,landing:location.pathname};
 };
-
+const api = async (path, data) => {
+    const response = await fetch(path, data === undefined ? {signal:AbortSignal.timeout(15000)} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(15000)});
+    if (!response.ok) {
+        const error = await response.json().catch(()=>({}));
+        const failure=new Error(error.error || 'Connection interrupted. Please try again.');failure.status=response.status;throw failure;
+    }
+    return response.json();
+};
 const loadWordData = async () => {
     try {
-        const [dictionaryText, pairsText] = await Promise.all([
-            fetchText('./dictionary.txt'),
-            fetchText('./pairs.txt')
-        ]);
-
-        dictionary = dictionaryText.split('\n');
-        dictionarySet = new Set(dictionary);
-        pairs = pairsText.split('\n').map((line) => line.split(','));
+        const config = await api('/api/config');
+        pairCount = config.pairCount;
         isDataLoaded = true;
         render();
+        let visitId = sessionStorage.getItem('anagramish-visit');
+        if (!visitId) {visitId=crypto.randomUUID();sessionStorage.setItem('anagramish-visit',visitId);}
+        api('/api/visit',{id:visitId,attribution:attribution()}).catch(()=>{});
     } catch {
-        renderMessage('Unable to load word data. Reload to try again.');
+        renderMessage('Unable to connect. Reload to try again.');
+        document.querySelector('#connection-retry')?.remove();
+        const retry=document.createElement('button');retry.id='connection-retry';retry.textContent='Retry connection';retry.onclick=loadWordData;get('main').appendChild(retry);
     }
 };
 
@@ -82,10 +80,6 @@ const calcIndex = (seed, n) => {
 
     return i;
 };
-
-const randomPair = () => pairs[rnd(pairs.length)];
-
-const todaysPair = (puzzleNumber) => pairs[puzzleNumber];
 
 const formatElapsedTime = (numSeconds) => {
     const minutes = Math.floor(numSeconds / 60);
@@ -118,11 +112,11 @@ const getSavedPuzzleNumber = (date, game) => {
         return game.puzzleNumber;
     }
 
-    if (pairs.length === 0) {
+    if (pairCount === 0) {
         return 1;
     }
 
-    const puzzleNumber = calcIndex(new Date(date), pairs.length);
+    const puzzleNumber = calcIndex(new Date(date), pairCount);
 
     return Number.isFinite(puzzleNumber) ? puzzleNumber : 1;
 };
@@ -223,28 +217,9 @@ const loadGame = () => {
     return isVersion2Game(game) ? game : null;
 };
 
-const initTodaysGame = (dailyKey) => {
-    const puzzleNumber = calcIndex(new Date(dailyKey), pairs.length);
-    const pair = todaysPair(puzzleNumber);
-
-    return {
-        version: GAME_VERSION,
-        pair,
-        puzzleNumber,
-        state: STATES.PLAYING,
-        numSeconds: 0,
-        words: [],
-        mistakes: 0
-    };
-};
-
-const initPracticeGame = () => ({
-    version: GAME_VERSION,
-    pair: randomPair(),
-    state: STATES.PLAYING,
-    numSeconds: 0,
-    words: [],
-    mistakes: 0
+const newGame = (data) => ({
+    version: GAME_VERSION, pair:data.pair, puzzleNumber:data.puzzleNumber,
+    state:STATES.PLAYING, numSeconds:0, words:[], mistakes:0
 });
 
 const hydrateGameState = (game, isPractice) => {
@@ -277,29 +252,40 @@ const hydrateGameState = (game, isPractice) => {
     render();
 };
 
-const startGame = (isPractice, dailyKey = key()) => {
-    if (!isDataLoaded) {
-        renderMessage('Loading word data...');
-        return;
-    }
-
+const startGame = async (isPractice, dailyKey = key()) => {
+    if (!isDataLoaded || startingGame || checkingGuess) return;
+    startingGame = true;
     stopClock();
-
-    if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-    }
-
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     state.isPractice = isPractice;
     state.dailyKey = isPractice ? null : dailyKey;
-
     let game = loadGame();
-
-    if (!game || (isPractice && game.state === STATES.FINISHED)) {
-        game = isPractice ? initPracticeGame() : initTodaysGame(state.dailyKey);
-        saveGame(game);
+    if (isPractice && game?.state === STATES.FINISHED) game = null;
+    if (game?.state === STATES.FINISHED) {
+        hydrateGameState(game,isPractice);
+        startingGame=false;
+        return;
     }
-
-    hydrateGameState(game, isPractice);
+    renderMessage('Opening puzzle…');
+    try {
+        const id = game?.apiId && game.apiHardMode === state.hardMode ? game.apiId : crypto.randomUUID();
+        const input={id,mode:isPractice?'practice':'daily',date:state.dailyKey,hard:state.hardMode,savedPair:game?.pair,resumed:!!game,attribution:attribution()};
+        let data;
+        try {data=await api('/api/start',input);}catch(error){
+            if(error.status!==403)throw error;
+            data=await api('/api/start',{...input,id:crypto.randomUUID()});
+        }
+        game = game ?? newGame(data);
+        game.apiId = data.id;
+        game.apiHardMode = state.hardMode;
+        game.pair = data.pair;
+        if(data.puzzleNumber !== null) game.puzzleNumber=data.puzzleNumber;
+        saveGame(game);
+        hydrateGameState(game,isPractice);
+        get('#message').classList.remove('show');
+    } catch(error) {
+        renderMessage(error.message || 'Unable to open puzzle. Please try again.');
+    } finally { startingGame=false; }
 };
 
 const saveGame = (game) => {
@@ -423,10 +409,10 @@ const colorKeyboard = () => {
     });
 };
 
-const handleKey = (key) => {
+const handleKey = async (key) => {
     const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
 
-    if (state.state !== STATES.PLAYING || state.position === null) {
+    if (state.state !== STATES.PLAYING || state.position === null || checkingGuess || startingGame) {
         return;
     }
 
@@ -447,18 +433,16 @@ const handleKey = (key) => {
     } else if (normalizedKey === 'Enter' && state.position.x === 5) {
         const { y } = state.position;
 
-        if (!dictionarySet.has(state.board[y].join(''))) {
-            renderMessage(`${state.board[y].join('')} is not in our dictionary`);
-            state.mistakes += 1;
-            state.board.splice(state.position.y, 1, emptyRow());
-            state.position.x = 0;
-        } else if (compareWords(state.board[y], state.board[y - 1]) !== 4) {
-            renderMessage(`${state.board[y].join('')} can only differ by one letter from ${state.board[y - 1].join('')}`);
-            state.mistakes += 1;
-            state.board.splice(state.position.y, 1, emptyRow());
-            state.position.x = 0;
-        } else if (state.hardMode && !isValidHardModeProgression(state.board[y], y)) {
-            renderMessage(getHardModeProgressMessage(state.board[y], y));
+        checkingGuess = true;
+        let verdict;
+        try {
+            verdict = await api('/api/guess',{id:loadGame()?.apiId,words:state.board.slice(1,y+1).map(row=>row.join(''))});
+        } catch(error) {
+            renderMessage(error.message || 'Unable to check word. Press Enter to retry.');
+            return;
+        } finally { checkingGuess = false; }
+        if (!verdict.valid) {
+            renderMessage(verdict.message);
             state.mistakes += 1;
             state.board.splice(state.position.y, 1, emptyRow());
             state.position.x = 0;
@@ -486,6 +470,7 @@ const handleKey = (key) => {
 };
 
 const deleteLastCompletedWord = () => {
+    if (checkingGuess || startingGame) return;
     if (!state.hardMode || state.state !== STATES.PLAYING || state.position === null || state.position.y <= 1) {
         return;
     }
@@ -579,6 +564,29 @@ const renderWelcome = (app) => {
     });
 };
 
+const syncResult = async (game, isPractice, dateKey) => {
+    const status = document.querySelector('#result-status');
+    if(!game.apiId) { if(status)status.textContent='Saved on this device.';return; }
+    if(game.apiResultSaved) {if(status)status.textContent='Result saved.';return;}
+    if(status)status.textContent='Saving result…';
+    try {
+        const result=await api('/api/complete',{id:game.apiId,words:game.words,seconds:game.numSeconds,mistakes:game.mistakes});
+        if(!result.valid)throw new Error(result.message);
+        const saved=isPractice?readStorageJSON('practice'):getHistory()[dateKey];
+        if(saved?.apiId===game.apiId) {
+            saved.apiResultSaved=true;
+            if(isPractice)localStorage.setItem('practice',JSON.stringify(saved));
+            else {const history=getHistory();history[dateKey]=saved;putHistory(history);}
+        }
+        if(status?.isConnected)status.textContent='Result saved.';
+    }catch(error) {
+        if(status?.isConnected) {
+            status.textContent='Saved on this device. ';
+            const retry=document.createElement('button');retry.textContent='Retry syncing';retry.onclick=()=>syncResult(game,isPractice,dateKey);status.appendChild(retry);
+        }
+    }
+};
+
 const renderFinish = (app) => {
     killKeyboard();
     stopClock();
@@ -591,6 +599,7 @@ const renderFinish = (app) => {
     get('#mistakes').textContent = state.mistakes;
     get('#words').textContent = state.board.length - 2;
     get('#puzzle-number').textContent = `#${state.puzzleNumber}`;
+    syncResult(loadGame(),state.isPractice,state.dailyKey);
 
     const boardEl = renderBoard(state.board);
 
@@ -668,7 +677,7 @@ const renderPastGameLink = (date) => {
     return link;
 };
 
-const renderPastGame = (app) => {
+const renderPastGame = async (app) => {
     stopClock();
     killKeyboard();
 
@@ -702,7 +711,17 @@ const renderPastGame = (app) => {
             return;
         }
 
-        const { pair, puzzleNumber } = initTodaysGame(date);
+        let pair, puzzleNumber;
+        try {
+            ({pair,puzzleNumber}=await api('/api/puzzle?date='+encodeURIComponent(date)));
+            if(state.state!==STATES.PAST_GAME || state.pastGameKey!==date)return;
+        } catch(error) {
+            if(state.state===STATES.PAST_GAME && state.pastGameKey===date) {
+                get('#board-container').textContent='Unable to load puzzle.';
+                play.textContent='Retry';play.hidden=false;play.onclick=()=>render();
+            }
+            return;
+        }
 
         get('#puzzle-number').textContent = `#${puzzleNumber} ${pair[0].toUpperCase()} ${pair[1].toUpperCase()}`;
         get('#past-details').textContent = 'Not played';
@@ -813,12 +832,14 @@ const render = () => {
 };
 
 get('#back').addEventListener('click', () => {
+    if (checkingGuess || startingGame) return;
     stopClock();
     state.state = STATES.WELCOME;
     render();
 });
 
 get('#reset').addEventListener('click', () => {
+    if (checkingGuess || startingGame) return;
     if (!state.isPractice) {
         return;
     }

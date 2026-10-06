@@ -1,0 +1,15 @@
+{
+  "name": "anagramish-analytics",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "db:generate": "drizzle-kit generate"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.5",
+    "esbuild": "^0.25.10",
+    "miniflare": "^4.20250927.0"
+  }
+}

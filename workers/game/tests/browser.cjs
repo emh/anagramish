@@ -1,0 +1,33 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});try{
+ const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));const requested=[];page.on('request',r=>requested.push(r.url()));
+ await page.goto('http://127.0.0.1:4173/?utm_source=browser-test&utm_campaign=preview');
+ await page.getByRole('button',{name:'Practice',exact:true}).waitFor();
+ await page.evaluate(()=>localStorage.setItem('practice',JSON.stringify({version:2,pair:['caulk','horse','73'],state:'playing',numSeconds:12,words:[],mistakes:0})));
+ await page.getByRole('button',{name:'Practice',exact:true}).click();
+ await page.waitForSelector('.board .current');
+ await page.keyboard.type('lacks');
+ await page.route('**/api/guess',route=>route.abort());await page.keyboard.press('Enter');
+ await page.waitForTimeout(200);
+ assert.equal(await page.locator('.board .cell').nth(5).textContent(),'l');
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('practice')).mistakes),0);
+ await page.unroute('**/api/guess');await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>JSON.parse(localStorage.getItem('practice')).words.length===1);
+ await page.context().clearCookies();await page.reload();await page.getByRole('button',{name:'Practice',exact:true}).click();await page.waitForSelector('.board .current');
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('practice')).words[0]),'lacks');
+ for(const word of ['hacks','shake','share']){await page.keyboard.type(word);await page.keyboard.press('Enter');await page.waitForFunction(w=>JSON.parse(localStorage.getItem('practice')).words.includes(w),word)}
+ await page.getByText('Result saved.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Home',exact:true}).click();await page.getByRole('button',{name:'History',exact:true}).click();
+ await page.locator('.history-date').first().click();await page.getByRole('button',{name:'Play',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Play',exact:true}).click();await page.waitForSelector('.board .current');
+ assert.equal(requested.some(url=>url.endsWith('/dictionary.txt')||url.endsWith('/pairs.txt')),false);
+ await page.setViewportSize({width:390,height:844});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.screenshot({path:'/tmp/anagramish-browser-game.png',fullPage:true});
+ const dashboard=await browser.newPage();dashboard.on('pageerror',e=>errors.push(e.message));await dashboard.goto('http://127.0.0.1:4174');await dashboard.locator('#report:not([hidden])').waitFor();
+ await dashboard.getByRole('button',{name:'Refresh'}).click();await dashboard.waitForFunction(()=>Number(document.getElementById('players').textContent)>0);
+ await dashboard.screenshot({path:'/tmp/anagramish-browser-analytics.png',fullPage:true});
+ await dashboard.selectOption('#environment','production');await dashboard.waitForFunction(()=>document.getElementById('players').textContent==='0');
+ assert.deepEqual(errors,[]);console.log('Browser passed: legacy save, network retry, resumed game, completed result, historical daily puzzle, mobile width, dashboard, no word-list downloads.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

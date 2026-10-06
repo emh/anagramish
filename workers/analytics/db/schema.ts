@@ -1,0 +1,4 @@
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+export const events = sqliteTable('events', {
+ id:text('id').primaryKey(), kind:text('kind').notNull(), player:text('player').notNull(), occurredAt:integer('occurred_at').notNull(), day:text('day').notNull(), environment:text('environment').notNull(), mode:text('mode'), puzzleDate:text('puzzle_date'), hard:integer('hard'), seconds:integer('seconds'), mistakes:integer('mistakes'), wordCount:integer('word_count'), resumed:integer('resumed').notNull().default(0), source:text('source'), medium:text('medium'), campaign:text('campaign'), referrer:text('referrer'), landing:text('landing'), country:text('country'), region:text('region'), device:text('device')
+}, t=>[index('idx_events_environment_day').on(t.environment,t.day), index('idx_events_player_day').on(t.player,t.day)]);
