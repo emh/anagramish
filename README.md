@@ -44,3 +44,9 @@ Ladders are server-validated, but times and mistakes are browser-reported. Do no
 “Learn to play” opens three untimed, guided lessons: two three-letter puzzles for substitutions and rearrangement, followed by a four-letter ladder with optional hints. It reuses the game's keyboard and variable-size board, works without API connectivity, and supports skip/replay and a handoff to today's puzzle. Tutorial completion is a device-local onboarding preference; daily/practice history and hard-mode settings are preserved.
 
 The `/api/tutorial` endpoint records separate, idempotent start/completion events. The analytics dashboard shows them separately from daily players and game results. `tutorial.mjs` contains the small authored lesson vocabulary, not the full game dictionary. Additional checks live in `workers/game/tests/tutorial.test.mjs` and `workers/game/tests/tutorial-browser.cjs`.
+
+## SEO milestone
+
+The root homepage now contains its welcome content before JavaScript runs. `/how-to-play.html` is a static rules page; `robots.txt` and `sitemap.xml` describe the intended public GitHub Pages site. Non-production Worker responses explicitly remain noindex. The shared `acquisition.mjs` preserves entry attribution from the rules page into the game, and the dashboard includes an estimated organic-search funnel.
+
+See [`docs/seo/plan.md`](docs/seo/plan.md) for the production launch checklist, baseline requirements, measurement definitions, and review cadence. `weekly-metrics.csv` deliberately starts empty: Search Console performance and production conversion baselines have not yet been collected. No SEO or advertising automation has been scheduled.

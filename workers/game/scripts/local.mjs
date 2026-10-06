@@ -16,7 +16,7 @@ export async function setup() {
  const game=new Miniflare({modules:true,scriptPath:resolve('dist/server/index.js'),compatibilityDate:'2026-08-01',d1Databases:['DB'],bindings:{TRAFFIC_ENV:'preview',ANALYTICS_URL:'https://analytics.test',ANALYTICS_SERVICE_TOKEN:'local-service-token',ANALYTICS_INGEST_TOKEN:'local-intake-token'},serviceBindings:{ASSETS:async request=>{
   const path=new URL(request.url).pathname;const file=path==='/'?'index.html':path.slice(1);
   if(!/^[a-zA-Z0-9._/-]+$/.test(file)||file.includes('..'))return new Response('Not found',{status:404});
-  try {const data=await readFile(resolve('dist/client',file));const ext=file.split('.').pop();return new Response(data,{headers:{'Content-Type':{html:'text/html',mjs:'text/javascript',js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png'}[ext]??'application/octet-stream'}});}catch{return new Response('Not found',{status:404})}
+  try {const data=await readFile(resolve('dist/client',file));const ext=file.split('.').pop();return new Response(data,{headers:{'Content-Type':{html:'text/html',mjs:'text/javascript',js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',xml:'application/xml',txt:'text/plain'}[ext]??'application/octet-stream'}});}catch{return new Response('Not found',{status:404})}
  }},outboundService:async request=>analytics.dispatchFetch(request.url,{method:request.method,headers:request.headers,body:await request.arrayBuffer()}),cf:false});
  const gameDb=await migrate(game,process.cwd());
  return {game,analytics,gameDb,analyticsDb,dispose:()=>Promise.all([game.dispose(),analytics.dispose()])};

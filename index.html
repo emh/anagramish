@@ -3,28 +3,57 @@
 
 <head>
     <meta charset="utf-8">
-    <title>ANAGRAMISH</title>
-    <meta name="description" content="Anagramish is a daily 5-letter word ladder game. Build a ladder from the start word to the end word by changing one letter at a time, with letters in any order.">
+    <title>Anagramish — Daily Anagram Word Ladder Game</title>
+    <meta name="description" content="Play Anagramish, a free daily five-letter word ladder game. Change one letter at a time, rearrange the letters, and connect the start word to the finish.">
     <meta name="robots" content="index,follow,max-image-preview:large">
     <meta name="application-name" content="Anagramish">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Anagramish">
     <meta property="og:url" content="https://anagramish.com/">
-    <meta property="og:title" content="ANAGRAMISH">
-    <meta property="og:description" content="A daily 5-letter anagram ladder puzzle. Connect the start word to the end word with valid words that differ by one letter.">
+    <meta property="og:title" content="Anagramish — Daily Anagram Word Ladder Game">
+    <meta property="og:description" content="Play Anagramish, a free daily five-letter word ladder game. Change one letter at a time, rearrange the letters, and connect the start word to the finish.">
     <meta property="og:image" content="https://anagramish.com/anagramish.png">
     <meta property="og:image:width" content="200">
     <meta property="og:image:height" content="271">
     <meta property="og:image:alt" content="Anagramish logo with a 2x2 letter grid: blue A B on top and orange C D below.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="ANAGRAMISH">
-    <meta name="twitter:description" content="A daily 5-letter anagram ladder puzzle. Connect the start word to the end word with valid words that differ by one letter.">
+    <meta name="twitter:title" content="Anagramish — Daily Anagram Word Ladder Game">
+    <meta name="twitter:description" content="Play Anagramish, a free daily five-letter word ladder game. Change one letter at a time, rearrange the letters, and connect the start word to the finish.">
     <meta name="twitter:image" content="https://anagramish.com/anagramish.png">
     <meta name="twitter:image:alt" content="Anagramish logo with a 2x2 letter grid: blue A B on top and orange C D below.">
     <link rel="canonical" href="https://anagramish.com/">
     <link rel="stylesheet" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://anagramish.com/#website",
+      "url": "https://anagramish.com/",
+      "name": "Anagramish",
+      "description": "Play Anagramish, a free daily five-letter word ladder game. Change one letter at a time, rearrange the letters, and connect the start word to the finish.",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://anagramish.com/#game",
+      "url": "https://anagramish.com/",
+      "name": "Anagramish",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Any",
+      "isAccessibleForFree": true,
+      "description": "Play Anagramish, a free daily five-letter word ladder game. Change one letter at a time, rearrange the letters, and connect the start word to the finish.",
+      "browserRequirements": "JavaScript and an internet connection for daily puzzles.",
+      "isPartOf": {
+        "@id": "https://anagramish.com/#website"
+      }
+    }
+  ]
+}
+    </script>
 </head>
 
 <body>
@@ -45,18 +74,13 @@
             </button>
             <div id="message"></div>
         </header>
-        <main></main>
-        <footer>
-        </footer>
-    </div>
-
-    <template id="welcome-template">
+        <main>
         <section>
-            <p>Welcome to Anagramish!</p>
+            <p>A daily five-letter anagram word ladder.</p>
             
             <div class="buttons">
-                <button id="play">Play</button>
-                <button id="practice">Practice</button>
+                <button id="play" disabled>Play</button>
+                <button id="practice" disabled>Practice</button>
                 <button id="history">History</button>
             </div>
 
@@ -69,6 +93,7 @@
                 </label>
             </div>
             
+            <h2 class="welcome-heading">How to play Anagramish</h2>
             <p>Build a ladder from the blue start word to the orange end word.</p>
             <p>Each step must be a valid 5-letter word that differs from the previous word by exactly one letter, with letters allowed in any order.</p>
             
@@ -78,8 +103,14 @@
             <p>Normal mode still lets you reach for outside letters when you get stuck.</p>
 
             <div class="board"><div class="start cell">m</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">n</div><div class="start cell">d</div><div class="end cell">r</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">n</div><div class="start cell">d</div><div class="end cell">p</div><div class="end cell">r</div><div class="start cell">o</div><div class="start cell">u</div><div class="start cell">d</div><div class="end cell">p</div><div class="end cell">r</div><div class="start cell">u</div><div class="start cell">d</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="start cell">d</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="end cell">c</div><div class="misc cell">e</div><div class="end cell">p</div><div class="end cell">r</div><div class="end cell">i</div><div class="end cell">c</div><div class="end cell">k</div></div>
+            <p class="rules-link"><a href="how-to-play.html">Read the rules and see a worked example</a></p>
+            <noscript><p>Enable JavaScript to play. You can still read the rules and examples on this page.</p></noscript>
         </section>
-    </template>
+        </main>
+        <footer>
+        </footer>
+    </div>
+
 
     <template id="finish-template">
         <section>

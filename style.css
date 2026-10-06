@@ -500,3 +500,7 @@ section.tutorial-screen { width: 100%; padding: 16px 20px 8px; gap: 10px; }
     .tutorial-screen .board { gap: 6px; padding: 6px 0; }
     .tutorial-coach { padding: 8px; }
 }
+
+.welcome-heading { margin: 22px 0 0; font-size: 20px; letter-spacing: normal; }
+.rules-link { margin: 16px 0 24px; line-height: 1.5; }
+.rules-link a { color: var(--fg); text-underline-offset: 3px; }

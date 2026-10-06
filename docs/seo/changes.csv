@@ -1,0 +1,2 @@
+date,environment,change,commit,deployed_at,notes
+2026-10-06,preview,"Crawlable welcome content; descriptive metadata; rules page; sitemap and robots; organic acquisition measurement",,,"Prepared on feature branch. Record production deployment separately; no production SEO results measured."

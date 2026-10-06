@@ -98,9 +98,11 @@ export default {
   try {
    if(path.startsWith('/api/'))return await api(request,env,ctx);
    // Word data stays inside the Worker bundle and is never a public asset.
-   if(path.endsWith('.txt')||path.includes('/data/')||path.includes('/server/'))return new Response('Not found',{status:404});
+   if(path==='/robots.txt' && env.TRAFFIC_ENV!=='production')return new Response('User-agent: *\nDisallow: /\n',{headers:{'Content-Type':'text/plain; charset=utf-8','X-Robots-Tag':'noindex, nofollow'}});
+   if((path.endsWith('.txt')&&path!=='/robots.txt')||path.includes('/data/')||path.includes('/server/'))return new Response('Not found',{status:404});
    const response=await env.ASSETS.fetch(request);
    const headers=new Headers(response.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','strict-origin-when-cross-origin');
+   if(env.TRAFFIC_ENV!=='production')headers.set('X-Robots-Tag','noindex, nofollow');
    return new Response(response.body,{status:response.status,headers});
   } catch(error) {
    console.error('Request failed',error.name,error.message);

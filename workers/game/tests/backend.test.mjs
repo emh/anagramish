@@ -67,3 +67,24 @@ test('tutorial events are deduplicated and excluded from game sessions and playe
  assert.equal((await app.gameDb.prepare('SELECT COUNT(*) n FROM sessions').first()).n,beforeSessions);
  assert.equal((await request('/api/tutorial',{id:tutorialId,action:'bogus'})).status,400);
 });
+test('preview crawling is blocked while word-list downloads remain unavailable',async()=>{
+ const home=await request('/');assert.equal(home.status,200);assert.match(home.headers.get('x-robots-tag'),/noindex/);
+ const robots=await request('/robots.txt');assert.equal(robots.status,200);assert.match(await robots.text(),/Disallow: \//);
+ assert.equal((await request('/dictionary.txt')).status,404);
+ assert.equal((await request('/how-to-play.html')).status,200);
+});
+test('organic finishers join their completed game to its original acquisition source',async()=>{
+ const r=await app.game.dispatchFetch('https://game.test/api/config');const organicCookie=r.headers.get('set-cookie').split(';')[0];
+ const organicId=crypto.randomUUID();const attribution={source:'google',medium:'organic',landing:'/how-to-play.html'};
+ await request('/api/visit',{id:crypto.randomUUID(),attribution},organicCookie);
+ await request('/api/start',{id:organicId,mode:'practice',hard:false,savedPair:['caulk','horse'],attribution},organicCookie);
+ await request('/api/complete',{id:organicId,words:['lacks','hacks','shake','share'],seconds:40,mistakes:0},organicCookie);
+ let organic;
+ for(let i=0;i<25;i++) {
+  const response=await app.analytics.dispatchFetch('https://analytics.test/api/report?environment=preview',{headers:{'oai-authenticated-user-email':'owner@example.test'}});
+  organic=(await response.json()).organic;
+  if(organic.finishers===1)break;
+  await new Promise(r=>setTimeout(r,100));
+ }
+ assert.deepEqual(organic,{visitors:1,players:1,finishers:1});
+});

@@ -1,6 +1,11 @@
 import { get, set } from './html.mjs';
 import { compareWords, emptyBoard, emptyRow } from './utils.js';
 import { TUTORIAL_LESSONS, checkTutorialWord } from './tutorial.mjs';
+import { getAttribution } from './acquisition.mjs';
+
+// The initial HTML is also the welcome screen, so rules are readable without JS.
+const welcomeTemplate = document.createElement('template');
+welcomeTemplate.innerHTML = get('main').innerHTML;
 
 const STATES = {
     WELCOME: 'welcome',
@@ -41,10 +46,8 @@ let pairCount = 0;
 let isDataLoaded = false;
 let startingGame = false;
 let checkingGuess = false;
-const attribution = () => {
-    const params = new URLSearchParams(location.search);
-    return {source:params.get('utm_source'),medium:params.get('utm_medium'),campaign:params.get('utm_campaign'),referrer:document.referrer,landing:location.pathname};
-};
+const attribution = getAttribution;
+getAttribution();
 const api = async (path, data) => {
     const response = await fetch(path, data === undefined ? {signal:AbortSignal.timeout(15000)} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(15000)});
     if (!response.ok) {
@@ -558,7 +561,7 @@ const renderWelcome = (app) => {
     stopClock();
     killKeyboard();
 
-    const template = get('#welcome-template');
+    const template = welcomeTemplate;
     app.innerHTML = '';
     app.appendChild(template.content.cloneNode(true));
     get('#play').disabled = !isDataLoaded;
