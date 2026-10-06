@@ -1,6 +1,6 @@
-export const emptyRow = () => Array(5).fill(null);
+export const emptyRow = (wordLength = 5) => Array(wordLength).fill(null);
 
-export const emptyBoard = () => Array.from({ length: 6 }, () => emptyRow());
+export const emptyBoard = (wordLength = 5, rowCount = 6) => Array.from({ length: rowCount }, () => emptyRow(wordLength));
 
 const compare = (ch1, ch2) => {
     if (ch1.length === 0 || ch2.length === 0) return 0;

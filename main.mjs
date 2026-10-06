@@ -1,9 +1,11 @@
 import { get, set } from './html.mjs';
 import { compareWords, emptyBoard, emptyRow } from './utils.js';
+import { TUTORIAL_LESSONS, checkTutorialWord } from './tutorial.mjs';
 
 const STATES = {
     WELCOME: 'welcome',
     PLAYING: 'playing',
+    TUTORIAL: 'tutorial',
     FINISHED: 'finished',
     HISTORY: 'history',
     PAST_GAME: 'past-game'
@@ -31,7 +33,8 @@ const state = {
     position: { x: 0, y: 1 },
     state: STATES.WELCOME,
     numSeconds: 0,
-    pastGameKey: null
+    pastGameKey: null,
+    tutorial: null
 };
 
 let pairCount = 0;
@@ -55,12 +58,14 @@ const loadWordData = async () => {
         const config = await api('/api/config');
         pairCount = config.pairCount;
         isDataLoaded = true;
+        flushTutorialEvents();
         render();
         let visitId = sessionStorage.getItem('anagramish-visit');
         if (!visitId) {visitId=crypto.randomUUID();sessionStorage.setItem('anagramish-visit',visitId);}
         api('/api/visit',{id:visitId,attribution:attribution()}).catch(()=>{});
     } catch {
         renderMessage('Unable to connect. Reload to try again.');
+        if (state.state !== STATES.WELCOME) return;
         document.querySelector('#connection-retry')?.remove();
         const retry=document.createElement('button');retry.id='connection-retry';retry.textContent='Retry connection';retry.onclick=loadWordData;get('main').appendChild(retry);
     }
@@ -255,6 +260,7 @@ const hydrateGameState = (game, isPractice) => {
 const startGame = async (isPractice, dailyKey = key()) => {
     if (!isDataLoaded || startingGame || checkingGuess) return;
     startingGame = true;
+    state.tutorial = null;
     stopClock();
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     state.isPractice = isPractice;
@@ -308,6 +314,7 @@ const saveGame = (game) => {
 };
 
 const updateSavedGame = () => {
+    if (state.tutorial) return;
     const game = loadGame() ?? {
         version: GAME_VERSION,
         pair: state.pair,
@@ -353,10 +360,10 @@ const stopClock = () => {
     }
 };
 
-const resetBoard = (pair) => {
-    const board = emptyBoard();
+const resetBoard = (pair, rowCount = 6) => {
+    const board = emptyBoard(pair[0].length, rowCount);
     board[0] = pair[0].split('');
-    board[5] = pair[1].split('');
+    board[rowCount - 1] = pair[1].split('');
     return board;
 };
 
@@ -395,7 +402,7 @@ const colorKeyboard = () => {
             return;
         }
 
-        if (state.hardMode && !isHardModeAllowedLetter(key)) {
+        if (!state.tutorial && state.hardMode && !isHardModeAllowedLetter(key)) {
             el.classList.add('invalid');
             el.disabled = true;
             return;
@@ -412,7 +419,7 @@ const colorKeyboard = () => {
 const handleKey = async (key) => {
     const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
 
-    if (state.state !== STATES.PLAYING || state.position === null || checkingGuess || startingGame) {
+    if (![STATES.PLAYING, STATES.TUTORIAL].includes(state.state) || state.position === null || checkingGuess || startingGame) {
         return;
     }
 
@@ -421,8 +428,8 @@ const handleKey = async (key) => {
             state.board[state.position.y][state.position.x - 1] = null;
             state.position.x -= 1;
         }
-    } else if (isLetter(normalizedKey) && state.position.x <= 4) {
-        if (state.hardMode && !isHardModeAllowedLetter(normalizedKey)) {
+    } else if (isLetter(normalizedKey) && state.position.x < state.board[0].length) {
+        if (!state.tutorial && state.hardMode && !isHardModeAllowedLetter(normalizedKey)) {
             return;
         }
 
@@ -430,9 +437,13 @@ const handleKey = async (key) => {
 
         state.board[y][x] = normalizedKey;
         state.position.x += 1;
-    } else if (normalizedKey === 'Enter' && state.position.x === 5) {
+    } else if (normalizedKey === 'Enter' && state.position.x === state.board[0].length) {
         const { y } = state.position;
 
+        if (state.tutorial) {
+            submitTutorialWord();
+            return;
+        }
         checkingGuess = true;
         let verdict;
         try {
@@ -466,6 +477,9 @@ const handleKey = async (key) => {
         updateSavedGame();
     }
 
+    if (state.tutorial && normalizedKey === 'Enter' && state.position.x < state.board[0].length) {
+        state.tutorial.feedback = `Fill all ${state.board[0].length} letters, then press Enter.`;
+    }
     render();
 };
 
@@ -509,14 +523,20 @@ const setupHandlers = () => {
         }
     });
 
-    document.addEventListener('keydown', (e) => handleKey(e.key));
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.target instanceof Element && e.target.closest('input,select,textarea,[contenteditable]')) return;
+        if (e.key === 'Enter' && e.target instanceof HTMLButtonElement && !e.target.classList.contains('key')) return;
+        if ([STATES.PLAYING, STATES.TUTORIAL].includes(state.state) && (e.key === 'Enter' || e.key === 'Backspace')) e.preventDefault();
+        handleKey(e.key);
+    });
 };
 
 const renderKeyboard = () => {
     const footer = get('footer');
     footer.innerHTML = '';
 
-    if (state.state !== STATES.PLAYING) {
+    if (![STATES.PLAYING, STATES.TUTORIAL].includes(state.state) || state.position === null) {
         return;
     }
 
@@ -544,6 +564,8 @@ const renderWelcome = (app) => {
     get('#play').disabled = !isDataLoaded;
     get('#practice').disabled = !isDataLoaded;
     get('#hard-mode').checked = state.hardMode;
+    get('#tutorial').textContent = localStorage.getItem('anagramish-tutorial-completed') === 'true' ? 'Replay tutorial' : 'Learn to play';
+    get('#tutorial').addEventListener('click', startTutorial);
 
     get('#play').addEventListener('click', () => {
         startGame(false);
@@ -781,12 +803,129 @@ const renderHistory = (app) => {
     });
 };
 
+// Tutorial events are separate from game sessions and never affect player results.
+let pendingTutorialEvents = [];
+const flushTutorialEvents = () => {
+    if (!isDataLoaded) return;
+    const pending = pendingTutorialEvents;
+    pendingTutorialEvents = [];
+    for (const event of pending) {
+        api('/api/tutorial', event).catch(() => pendingTutorialEvents.push(event));
+    }
+};
+const recordTutorialEvent = (action) => {
+    pendingTutorialEvents.push({id:state.tutorial.id, action, attribution:attribution()});
+    flushTutorialEvents();
+};
+
+const startTutorial = () => {
+    if (startingGame || checkingGuess) return;
+    stopClock();
+    state.tutorial = {id:crypto.randomUUID(), lessonIndex:0, feedback:null};
+    state.isPractice = false;
+    state.dailyKey = null;
+    recordTutorialEvent('start');
+    openTutorialLesson(0);
+};
+
+const openTutorialLesson = (lessonIndex) => {
+    const lesson = TUTORIAL_LESSONS[lessonIndex];
+    state.tutorial.lessonIndex = lessonIndex;
+    state.tutorial.feedback = null;
+    state.tutorial.showHint = false;
+    state.state = STATES.TUTORIAL;
+    state.pair = [lesson.path[0], lesson.path.at(-1)];
+    state.board = resetBoard(state.pair, lesson.path.length);
+    state.position = {x:0, y:1};
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    renderKeyboard();
+    render();
+    get('main').scrollTo(0,0);
+};
+
+const submitTutorialWord = () => {
+    const t = state.tutorial;
+    const {y} = state.position;
+    const word = state.board[y].join('');
+    const error = checkTutorialWord(t.lessonIndex, y - 1, word);
+    if (error) {
+        t.feedback = error;
+        state.board[y] = emptyRow(state.pair[0].length);
+        state.position.x = 0;
+    } else if (y === state.board.length - 2) {
+        state.position = null;
+        t.feedback = null;
+        killKeyboard();
+        if (t.lessonIndex === TUTORIAL_LESSONS.length - 1) {
+            localStorage.setItem('anagramish-tutorial-completed', 'true');
+            recordTutorialEvent('complete');
+        }
+    } else {
+        state.position = {x:0, y:y+1};
+        t.feedback = null;
+        t.showHint = false;
+    }
+    render();
+};
+
+const exitTutorial = () => {
+    state.tutorial = null;
+    state.state = STATES.WELCOME;
+    render();
+};
+
+const renderTutorial = (app) => {
+    const t = state.tutorial;
+    const lesson = TUTORIAL_LESSONS[t.lessonIndex];
+    const done = state.position === null;
+    const last = t.lessonIndex === TUTORIAL_LESSONS.length - 1;
+    app.innerHTML = '';
+    const section = set('section.tutorial-screen');
+    section.append(
+        set('p.tutorial-progress', {}, `Lesson ${t.lessonIndex+1} of ${TUTORIAL_LESSONS.length} · ${lesson.path[0].length} letters · No timer`),
+        set('h2', {}, done && last ? 'Ready for today’s puzzle' : lesson.title),
+        set('p', {}, lesson.description),
+        renderBoard(state.board)
+    );
+    const coach = set('p#tutorial-feedback.tutorial-coach', {}, done ? lesson.success : t.feedback ?? (t.showHint ? lesson.hints[state.position.y-1] : lesson.prompts[state.position.y-1]));
+    coach.setAttribute('role', 'status');
+    coach.setAttribute('aria-live', 'polite');
+    section.append(coach);
+    const actions = set('div.tutorial-actions');
+    if (done) {
+        const next = set('button.tutorial-button.primary', {type:'button'}, last ? 'Play today’s puzzle' : 'Next lesson');
+        next.disabled = last && !isDataLoaded;
+        next.addEventListener('click', () => last ? startGame(false) : openTutorialLesson(t.lessonIndex+1));
+        actions.append(next);
+        if (last) {
+            const replay = set('button.tutorial-button', {type:'button'}, 'Replay tutorial');
+            replay.addEventListener('click', startTutorial);
+            actions.append(replay);
+            if (!isDataLoaded) {
+                section.append(set('p.tutorial-help', {}, 'Reconnect to play the daily puzzle.'));
+                const retry=set('button.tutorial-button',{type:'button'},'Retry connection');
+                retry.addEventListener('click',loadWordData);actions.append(retry);
+            }
+        }
+    } else {
+        const hint = set('button.tutorial-button', {type:'button'}, t.showHint ? 'Show clue' : 'Show hint');
+        hint.addEventListener('click', () => {t.showHint=!t.showHint;t.feedback=null;render();});
+        actions.append(hint);
+    }
+    const exit = set('button.tutorial-button', {type:'button'}, done && last ? 'Home' : 'Skip tutorial');
+    exit.addEventListener('click', exitTutorial);
+    actions.append(exit);
+    section.append(actions);
+    if (!done) section.append(set('p.tutorial-help', {}, 'Use your keyboard or tap the letters below. Enter checks your word.'));
+    app.append(section);
+};
+
 const getPositionClass = (position, y, x) => position?.x === x && position?.y === y ? 'current' : '';
 const getCharClass = (pair, char) => char === null ? 'normal' : pair[0].includes(char) ? 'start' : pair[1].includes(char) ? 'end' : 'misc';
 
 const renderCell = (char, y, x, pair, position) => set(`div.${[getPositionClass(position, y, x), getCharClass(pair, char), 'cell'].join('.')}`, {}, char);
 const renderRow = (chars, y, pair, position) => chars.map((c, x) => renderCell(c, y, x, pair, position));
-const renderBoard = (board, pair = state.pair, position = state.position) => set('div.board', {}, ...board.flatMap((row, y) => renderRow(row, y, pair, position)));
+const renderBoard = (board, pair = state.pair, position = state.position) => set('div.board', { style: `--word-length: ${board[0].length}` }, ...board.flatMap((row, y) => renderRow(row, y, pair, position)));
 
 const renderHeaderButtons = () => {
     get('#back').style.display = state.state === STATES.WELCOME ? 'none' : 'inline-block';
@@ -799,6 +938,9 @@ const render = () => {
 
     if (state.state === STATES.WELCOME) {
         renderWelcome(app);
+        return;
+    } else if (state.state === STATES.TUTORIAL) {
+        renderTutorial(app);
         return;
     } else if (state.state === STATES.FINISHED) {
         renderFinish(app);
@@ -834,6 +976,7 @@ const render = () => {
 get('#back').addEventListener('click', () => {
     if (checkingGuess || startingGame) return;
     stopClock();
+    state.tutorial = null;
     state.state = STATES.WELCOME;
     render();
 });
@@ -849,6 +992,7 @@ get('#reset').addEventListener('click', () => {
 });
 
 setupHandlers();
+window.addEventListener('online', () => isDataLoaded ? flushTutorialEvents() : loadWordData());
 
 render();
 loadWordData();

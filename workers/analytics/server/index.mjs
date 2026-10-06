@@ -1,6 +1,6 @@
 import dashboard from './dashboard.html';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
-const allowedKinds=new Set(['visit','game_start','game_play','game_complete']);
+const allowedKinds=new Set(['visit','game_start','game_play','game_complete','tutorial_start','tutorial_complete']);
 const fields=['id','kind','player','occurredAt','day','environment','mode','puzzleDate','hard','seconds','mistakes','wordCount','resumed','source','medium','campaign','referrer','landing','country','region','device'];
 const cols=['id','kind','player','occurred_at','day','environment','mode','puzzle_date','hard','seconds','mistakes','word_count','resumed','source','medium','campaign','referrer','landing','country','region','device'];
 async function secureEquals(a,b) {
@@ -25,7 +25,7 @@ async function report(url,env) {
  const from=new Date(Date.now()-(days-1)*86400000).toISOString().slice(0,10);
  const firsts=`SELECT player,MIN(day) first_day FROM events WHERE environment=? AND kind='game_play' GROUP BY player`;
  const results=await env.DB.batch([
-  env.DB.prepare(`SELECT COUNT(DISTINCT CASE WHEN kind='visit' THEN player END) visitors, COUNT(DISTINCT CASE WHEN kind='game_play' THEN player END) players, SUM(kind='game_start') starts,SUM(kind='game_complete') completions,AVG(CASE WHEN kind='game_complete' THEN seconds END) avg_seconds,MAX(occurred_at) last_event FROM events WHERE environment=? AND day BETWEEN ? AND ?`).bind(environment,from,today),
+  env.DB.prepare(`SELECT COUNT(DISTINCT CASE WHEN kind='visit' THEN player END) visitors, COUNT(DISTINCT CASE WHEN kind='game_play' THEN player END) players, SUM(kind='game_start') starts,SUM(kind='game_complete') completions,SUM(kind='tutorial_start') tutorial_starts,SUM(kind='tutorial_complete') tutorial_completions,AVG(CASE WHEN kind='game_complete' THEN seconds END) avg_seconds,MAX(occurred_at) last_event FROM events WHERE environment=? AND day BETWEEN ? AND ?`).bind(environment,from,today),
   env.DB.prepare(`WITH firsts AS (${firsts}) SELECT e.day,COUNT(DISTINCT CASE WHEN kind='visit' THEN e.player END) visitors,COUNT(DISTINCT CASE WHEN kind='game_play' THEN e.player END) players,COUNT(DISTINCT CASE WHEN kind='game_play' AND f.first_day=e.day THEN e.player END) new_players,SUM(kind='game_start') starts,SUM(kind='game_complete') completions FROM events e LEFT JOIN firsts f ON f.player=e.player WHERE e.environment=? AND e.day BETWEEN ? AND ? GROUP BY e.day ORDER BY e.day DESC`).bind(environment,environment,from,today),
   env.DB.prepare(`SELECT COALESCE(source,referrer,'Direct / unknown') source,COALESCE(medium,'—') medium,COALESCE(campaign,'—') campaign,COUNT(DISTINCT player) players,COUNT(*) starts FROM events WHERE environment=? AND kind='game_play' AND day BETWEEN ? AND ? GROUP BY source,medium,campaign ORDER BY players DESC LIMIT 30`).bind(environment,from,today),
   env.DB.prepare(`SELECT COALESCE(country,'Unknown') country,COALESCE(region,'Unknown') region,COUNT(DISTINCT player) players FROM events WHERE environment=? AND kind='game_play' AND day BETWEEN ? AND ? GROUP BY country,region ORDER BY players DESC LIMIT 20`).bind(environment,from,today),

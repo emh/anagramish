@@ -48,6 +48,13 @@ async function api(request,env,ctx) {
   await enqueue(env.DB,event(env,player,'visit',`visit:${player}:${new Date().toISOString().slice(0,10)}:${input.id}`,attribution(request,input.attribution))).run();
   ctx.waitUntil(flush(env).catch(error=>console.error('Analytics delivery deferred',error.message))); return reply({ok:true});
  }
+ if(url.pathname==='/api/tutorial') {
+  if(!uuid(input.id)||!['start','complete'].includes(input.action))return reply({error:'Invalid tutorial event.'},400);
+  const kind=input.action==='start'?'tutorial_start':'tutorial_complete';
+  await enqueue(env.DB,event(env,player,kind,`tutorial:${player}:${input.id}:${input.action}`,{mode:'tutorial',...attribution(request,input.attribution)})).run();
+  ctx.waitUntil(flush(env).catch(error=>console.error('Analytics delivery deferred',error.message)));
+  return reply({ok:true});
+ }
  if(url.pathname==='/api/start') {
   if(!uuid(input.id)||!['daily','practice'].includes(input.mode)||typeof input.hard!=='boolean')return reply({error:'Invalid game.'},400);
   const existing=await env.DB.prepare('SELECT * FROM sessions WHERE id=?').bind(input.id).first();

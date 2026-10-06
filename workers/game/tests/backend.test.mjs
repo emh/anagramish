@@ -48,3 +48,22 @@ test('analytics deduplicates retries, keeps preview separate, strips referrer pa
  for(let tries=0;tries<20;tries++){if(await app.analyticsDb.prepare('SELECT id FROM events WHERE id=?').bind('start:'+id).first())break;await new Promise(r=>setTimeout(r,100));}
  const e=await app.analyticsDb.prepare('SELECT referrer FROM events WHERE id=?').bind('start:'+id).first();assert.equal(e.referrer,'example.org');
 });
+test('tutorial events are deduplicated and excluded from game sessions and player counts',async()=>{
+ const beforeSessions=(await app.gameDb.prepare('SELECT COUNT(*) n FROM sessions').first()).n;
+ const tutorialId=crypto.randomUUID();
+ const r=await app.game.dispatchFetch('https://game.test/api/config');const otherCookie=r.headers.get('set-cookie').split(';')[0];
+ for(const action of ['start','start','complete','complete']) {
+  const response=await request('/api/tutorial',{id:tutorialId,action},otherCookie);assert.equal(response.status,200);
+ }
+ const headers={'oai-authenticated-user-email':'owner@example.test'};
+ for(let i=0;i<25;i++){
+  const response=await app.analytics.dispatchFetch('https://analytics.test/api/report?environment=preview',{headers});
+  const report=await response.json();
+  if(report.summary.tutorial_completions===1){assert.equal(report.summary.tutorial_starts,1);break;}
+  await new Promise(r=>setTimeout(r,100));
+ }
+ const summary=(await (await app.analytics.dispatchFetch('https://analytics.test/api/report?environment=preview',{headers})).json()).summary;
+ assert.equal(summary.tutorial_starts,1);assert.equal(summary.tutorial_completions,1);
+ assert.equal((await app.gameDb.prepare('SELECT COUNT(*) n FROM sessions').first()).n,beforeSessions);
+ assert.equal((await request('/api/tutorial',{id:tutorialId,action:'bogus'})).status,400);
+});

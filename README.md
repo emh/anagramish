@@ -38,3 +38,9 @@ Daily puzzles keep the original browser-local dates; reports use UTC. Existing b
 Anonymous cookies estimate browsers, not people. Referrer paths and raw IPs are not stored; coarse location uses available Cloudflare request metadata. Preview traffic is separate from production. The preview's Clicky script is removed.
 
 Ladders are server-validated, but times and mistakes are browser-reported. Do not use these as a verified leaderboard or publish competitive percentiles without strengthening the timing/comparison policy.
+
+## Tutorial milestone
+
+“Learn to play” opens three untimed, guided lessons: two three-letter puzzles for substitutions and rearrangement, followed by a four-letter ladder with optional hints. It reuses the game's keyboard and variable-size board, works without API connectivity, and supports skip/replay and a handoff to today's puzzle. Tutorial completion is a device-local onboarding preference; daily/practice history and hard-mode settings are preserved.
+
+The `/api/tutorial` endpoint records separate, idempotent start/completion events. The analytics dashboard shows them separately from daily players and game results. `tutorial.mjs` contains the small authored lesson vocabulary, not the full game dictionary. Additional checks live in `workers/game/tests/tutorial.test.mjs` and `workers/game/tests/tutorial-browser.cjs`.
