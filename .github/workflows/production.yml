@@ -1,0 +1,66 @@
+name: Deploy production
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+jobs:
+  workers:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix workers/game
+      - run: npm ci --prefix workers/analytics
+      - run: npm run build --prefix workers/analytics
+      - run: npm run build --prefix workers/game
+      - run: npm test --prefix workers/game
+      - name: Configure Cloudflare resources and frontend endpoint
+        run: node scripts/production-config.mjs
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAYER_SIGNING_KEY: ${{ secrets.PLAYER_SIGNING_KEY }}
+          ANALYTICS_INGEST_TOKEN: ${{ secrets.ANALYTICS_INGEST_TOKEN }}
+          ANALYTICS_ADMIN_EMAIL: ${{ vars.ANALYTICS_ADMIN_EMAIL }}
+          CF_ACCESS_ISSUER: ${{ vars.CF_ACCESS_ISSUER }}
+          CF_ACCESS_AUD: ${{ vars.CF_ACCESS_AUD }}
+      - name: Deploy analytics, then game API
+        run: |
+          node scripts/deploy-worker.mjs analytics
+          node scripts/deploy-worker.mjs game
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PLAYER_SIGNING_KEY: ${{ secrets.PLAYER_SIGNING_KEY }}
+          ANALYTICS_INGEST_TOKEN: ${{ secrets.ANALYTICS_INGEST_TOKEN }}
+      - name: Verify API and dashboard protection
+        run: node scripts/production-smoke.mjs
+        env:
+          ANALYTICS_ADMIN_EMAIL: ${{ vars.ANALYTICS_ADMIN_EMAIL }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: workers/game/dist/client
+  pages:
+    needs: workers
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -6,7 +6,7 @@ Implementation is on the feature branch and private preview, not the public GitH
 
 The source audit found a generic `ANAGRAMISH` title, a useful description and canonical, an empty initial `<main>`, and instructions inside an inert template. No robots.txt or sitemap was present. A public-page text fetch on the audit date exposed the brand heading but not the instructions. This is evidence of a rendering dependency, not proof that Google has failed to index the page.
 
-Search Console access, indexing status, impressions, clicks, CTR, rankings, and production conversion metrics have not been verified in this task. Leave baseline values blank until measured; do not record missing data as zero. Private preview traffic cannot establish an SEO result.
+The owner has added anagramish.com to Search Console and reports almost zero inbound search traffic. Use approximately zero organic traffic as the owner-supplied starting assumption; collecting a historical export is not a launch prerequisite. Indexing status, impressions, clicks, CTR, rankings, and production conversion metrics have not been verified here. Keep measured values blank until reports exist. Private preview traffic cannot establish an SEO result.
 
 ## Changes in this milestone
 
@@ -23,7 +23,7 @@ Search Console access, indexing status, impressions, clicks, CTR, rankings, and 
 
 1. Complete the API/Cloudflare production migration described in the root README. Do not merge the preview's same-origin API client directly into the current GitHub Pages deployment.
 2. Use the verified Search Console Domain property for `anagramish.com`, or create one with Google's prescribed DNS verification if needed. Keep the actual verification token out of this repository; no token has been invented or installed.
-3. Export the latest 28 complete days of Web search performance before rollout. Save aggregate totals, queries, landing pages, device, and country breakdowns. Record the actual report date boundaries/timezone, source property, and export date.
+3. Start collecting Web search performance after launch. The accepted starting assumption is approximately zero organic traffic. Record actual report date boundaries/timezone, source property, and export date when measurements become available.
 4. Record branded queries (containing “anagramish”) separately from non-branded queries. Initial topics to observe, not asserted high-volume keywords: “daily word ladder”, “anagram word game”, “five letter word ladder”, and “word ladder rules”. Use actual Search Console queries to refine them.
 5. Establish a production analytics baseline if available. If the new backend is launched together with SEO, mark conversion data as a new series; it has no comparable pre-launch baseline. Do not mix Clicky counts, preview events, and the new anonymous-cookie counts as if they were identical.
 6. Run mobile and desktop PageSpeed Insights against the public site. Record URL, date, test conditions, and lab versus field data separately. If field data is unavailable, mark it unavailable rather than substituting a lab score. Compare raw transfer size and responsiveness under the same test conditions.

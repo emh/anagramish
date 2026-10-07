@@ -1,3 +1,4 @@
+import { api } from './api-client.mjs';
 import { get, set } from './html.mjs';
 import { compareWords, emptyBoard, emptyRow } from './utils.js';
 import { TUTORIAL_LESSONS, checkTutorialWord } from './tutorial.mjs';
@@ -48,14 +49,6 @@ let startingGame = false;
 let checkingGuess = false;
 const attribution = getAttribution;
 getAttribution();
-const api = async (path, data) => {
-    const response = await fetch(path, data === undefined ? {signal:AbortSignal.timeout(15000)} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(15000)});
-    if (!response.ok) {
-        const error = await response.json().catch(()=>({}));
-        const failure=new Error(error.error || 'Connection interrupted. Please try again.');failure.status=response.status;throw failure;
-    }
-    return response.json();
-};
 const loadWordData = async () => {
     try {
         const config = await api('/api/config');

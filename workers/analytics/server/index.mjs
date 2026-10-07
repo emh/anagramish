@@ -1,3 +1,4 @@
+import {authorized} from './access.mjs';
 import dashboard from './dashboard.html';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const allowedKinds=new Set(['visit','game_start','game_play','game_complete','tutorial_start','tutorial_complete']);
@@ -39,11 +40,9 @@ export default {async fetch(request,env) {
  const url=new URL(request.url);
  try {
   if(url.pathname==='/ingest'&&request.method==='POST')return await ingest(request,env);
-  // Dispatch authenticates these headers; only the configured owner can read reports.
-  const email=request.headers.get('oai-authenticated-user-email');
-  if(!env.ADMIN_EMAIL||email?.toLowerCase()!==env.ADMIN_EMAIL.toLowerCase())return json({error:'Owner sign-in required.'},403);
+  if(!await authorized(request,env))return json({error:'Owner sign-in required.'},403);
   if(url.pathname==='/api/report'&&request.method==='GET')return await report(url,env);
-  if(url.pathname==='/'&&request.method==='GET')return new Response(dashboard,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff'}});
+  if(url.pathname==='/'&&request.method==='GET')return new Response(env.AUTH_MODE==='access'?dashboard.replace('<option value="production">','<option value="production" selected>'):dashboard,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff'}});
   return json({error:'Not found'},404);
  }catch(error){console.error('Analytics request failed',error.message);return json({error:'Analytics temporarily unavailable. Please retry.'},503);}
 }};

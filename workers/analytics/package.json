@@ -10,6 +10,7 @@
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.5",
     "esbuild": "^0.25.10",
-    "miniflare": "^4.20250927.0"
+    "miniflare": "^4.20250927.0",
+    "wrangler": "4.148.0"
   }
 }

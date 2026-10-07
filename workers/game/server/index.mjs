@@ -1,3 +1,4 @@
+import {signPlayer,verifyPlayer} from './player-token.mjs';
 import {pairCount,puzzle,practicePair,checkLadder} from './game.mjs';
 
 const uuid = v => typeof v==='string' && /^[a-f0-9-]{36}$/.test(v);
@@ -24,22 +25,26 @@ function event(env,player,kind,id,extra={}) {
 }
 function enqueue(db,e) {return db.prepare('INSERT OR IGNORE INTO outbox (id,payload,created_at) VALUES (?,?,?)').bind(e.id,JSON.stringify(e),Date.now());}
 export async function flush(env) {
- if(!env.ANALYTICS_URL||!env.ANALYTICS_SERVICE_TOKEN||!env.ANALYTICS_INGEST_TOKEN)return;
+ if(!env.ANALYTICS_INGEST_TOKEN||(!env.ANALYTICS&&(!env.ANALYTICS_URL||!env.ANALYTICS_SERVICE_TOKEN)))return;
  const rows=(await env.DB.prepare('SELECT id,payload FROM outbox ORDER BY created_at LIMIT 40').all()).results;
  if(!rows.length)return;
- const response=await fetch(new URL('/ingest',env.ANALYTICS_URL),{method:'POST',headers:{'Content-Type':'application/json','OAI-Sites-Authorization':`Bearer ${env.ANALYTICS_SERVICE_TOKEN}`,'Authorization':`Bearer ${env.ANALYTICS_INGEST_TOKEN}`},body:JSON.stringify({events:rows.map(r=>JSON.parse(r.payload))}),signal:AbortSignal.timeout(8000)});
+ const send=env.ANALYTICS?env.ANALYTICS.fetch.bind(env.ANALYTICS):fetch;
+ const response=await send(new URL('/ingest',env.ANALYTICS_URL||'https://analytics.internal'),{method:'POST',headers:{'Content-Type':'application/json',...(env.ANALYTICS?{}:{'OAI-Sites-Authorization':`Bearer ${env.ANALYTICS_SERVICE_TOKEN}`}),'Authorization':`Bearer ${env.ANALYTICS_INGEST_TOKEN}`},body:JSON.stringify({events:rows.map(r=>JSON.parse(r.payload))}),signal:AbortSignal.timeout(8000)});
  if(!response.ok)throw new Error(`Analytics intake returned ${response.status}`);
  await env.DB.batch(rows.map(r=>env.DB.prepare('DELETE FROM outbox WHERE id=?').bind(r.id)));
 }
 async function api(request,env,ctx) {
- const url=new URL(request.url), player=playerFor(request);
+ const url=new URL(request.url), production=env.TRAFFIC_ENV==='production';
+ let player=production?await verifyPlayer(request.headers.get('authorization')?.replace(/^Bearer /,''),env.PLAYER_SIGNING_KEY):playerFor(request);
+ if(!player&&url.pathname!=='/api/config')return json({error:'Reload to reconnect your game.'},401);
+ player ||= crypto.randomUUID();
  const cookie=`anagramish_player=${player}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax${url.protocol==='https:'?'; Secure':''}`;
- const reply=(d,s=200)=>json(d,s,{'Set-Cookie':cookie});
+ const reply=(d,s=200)=>json(d,s,production?{}:{'Set-Cookie':cookie});
  if(request.method==='POST') {
   const origin=request.headers.get('origin');
-  if(origin&&origin!==url.origin)return reply({error:'Invalid request origin.'},403);
+  if(origin&&origin!==url.origin&&origin!==env.FRONTEND_ORIGIN)return reply({error:'Invalid request origin.'},403);
  }
- if(request.method==='GET'&&url.pathname==='/api/config')return reply({pairCount});
+ if(request.method==='GET'&&url.pathname==='/api/config')return reply({pairCount,...(production?{playerToken:await signPlayer(player,env.PLAYER_SIGNING_KEY)}:{})});
  if(request.method==='GET'&&url.pathname==='/api/puzzle')return reply(puzzle(url.searchParams.get('date')));
  if(request.method!=='POST')return reply({error:'Not found.'},404);
  const input=await body(request);
@@ -93,20 +98,35 @@ async function api(request,env,ctx) {
  return reply({error:'Not found.'},404);
 }
 export default {
+ async scheduled(controller,env,ctx) { ctx.waitUntil(flush(env)); },
  async fetch(request,env,ctx) {
+  const origin=request.headers.get('origin');
+  const allowed=origin&&origin===env.FRONTEND_ORIGIN;
+  const cors=response=>{
+   const headers=new Headers(response.headers);
+   headers.set('Vary','Origin');headers.set('X-Robots-Tag','noindex, nofollow');
+   if(allowed)headers.set('Access-Control-Allow-Origin',origin);
+   return new Response(response.body,{status:response.status,headers});
+  };
   const path=new URL(request.url).pathname;
   try {
-   if(path.startsWith('/api/'))return await api(request,env,ctx);
+   if(path.startsWith('/api/')) {
+    if(origin&&origin!==new URL(request.url).origin&&!allowed)return cors(json({error:'Invalid request origin.'},403));
+    if(request.method==='OPTIONS')return cors(new Response(null,{status:204,headers:{'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Max-Age':'600'}}));
+    if(env.RATE_LIMITER&&!(await env.RATE_LIMITER.limit({key:request.headers.get('CF-Connecting-IP')||'unknown'})).success)return cors(json({error:'Too many requests. Please wait a minute.'},429));
+    return cors(await api(request,env,ctx));
+   }
    // Word data stays inside the Worker bundle and is never a public asset.
    if(path==='/robots.txt' && env.TRAFFIC_ENV!=='production')return new Response('User-agent: *\nDisallow: /\n',{headers:{'Content-Type':'text/plain; charset=utf-8','X-Robots-Tag':'noindex, nofollow'}});
    if((path.endsWith('.txt')&&path!=='/robots.txt')||path.includes('/data/')||path.includes('/server/'))return new Response('Not found',{status:404});
+   if(!env.ASSETS)return new Response('Not found',{status:404});
    const response=await env.ASSETS.fetch(request);
    const headers=new Headers(response.headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Referrer-Policy','strict-origin-when-cross-origin');
    if(env.TRAFFIC_ENV!=='production')headers.set('X-Robots-Tag','noindex, nofollow');
    return new Response(response.body,{status:response.status,headers});
   } catch(error) {
    console.error('Request failed',error.name,error.message);
-   return json({error:error.message?.includes('puzzle')?error.message:'Service temporarily unavailable. Your game is still saved; try again.'},503);
+   return cors(json({error:error.message?.includes('puzzle')?error.message:'Service temporarily unavailable. Your game is still saved; try again.'},503));
   }
  }
 };
