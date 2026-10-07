@@ -80,3 +80,21 @@ test('Worker-level Access authorizes the runtime identity without an assertion h
     assert.equal(await authorized(request,env,{access:{...access,getIdentity:async()=>{throw new Error('Unavailable');}},fetchKeys}),false);
     assert.equal(await authorized(request,{...env,ACCESS_AUD:''},{access,fetchKeys}),false);
 });
+
+test('Access denial diagnostics distinguish failures without exposing identity or tokens',async()=>{
+    const env={AUTH_MODE:'access',ADMIN_EMAIL:'private-owner@example.test',ACCESS_ISSUER:'https://test-team.cloudflareaccess.com',ACCESS_AUD:'test-audience'};
+    const request=new Request('https://analytics.test/');
+    const cases=[
+        [{},'access_identity_missing'],
+        [{access:{aud:'wrong-app'}},'access_audience_mismatch'],
+        [{access:{aud:env.ACCESS_AUD,getIdentity:async()=>({})}},'access_email_missing'],
+        [{access:{aud:env.ACCESS_AUD,getIdentity:async()=>({email:'someone@example.test'})}},'access_owner_mismatch'],
+        [{access:{aud:env.ACCESS_AUD,getIdentity:async()=>{throw new Error('sensitive-token');}}},'access_runtime_identity_error']
+    ];
+    for(const [options,expected] of cases){
+        let code;
+        assert.equal(await authorized(request,env,{...options,onDenied:value=>{code=value;}}),false);
+        assert.equal(code,expected);
+        assert.doesNotMatch(code,/private-owner|someone@|sensitive-token/);
+    }
+});
