@@ -3,24 +3,24 @@ function decode(value) {
     return Uint8Array.from(atob(value.replaceAll('-','+').replaceAll('_','/')), c => c.charCodeAt(0));
 }
 export async function authorized(request, env, {access, fetchKeys = fetch, onDenied = () => {}} = {}) {
-    const deny = (code, details) => { onDenied(code, details); return false; };
+    // Dashboard values copied into GitHub variables may include line endings.
+    const audience = (env.ACCESS_AUD || '').trim();
+    const issuer = (env.ACCESS_ISSUER || '').trim();
+    const adminEmail = (env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const deny = code => { onDenied(code); return false; };
     let phase = 'identity';
     // Only the private Sites deployment may trust its platform-injected header.
-    if (env.AUTH_MODE === 'sites') return !!env.ADMIN_EMAIL && request.headers.get('oai-authenticated-user-email')?.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
-    if (env.AUTH_MODE !== 'access' || !env.ADMIN_EMAIL || !env.ACCESS_AUD || !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(env.ACCESS_ISSUER || '')) return deny('access_configuration_missing');
+    if (env.AUTH_MODE === 'sites') return !!adminEmail && request.headers.get('oai-authenticated-user-email')?.toLowerCase() === adminEmail;
+    if (env.AUTH_MODE !== 'access' || !adminEmail || !audience || !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(issuer)) return deny('access_configuration_missing');
     try {
         // Worker-level Access supplies a trusted runtime context. It is not a
         // request header and cannot be supplied by a browser or service binding.
         if (access) {
-            if (access.aud !== env.ACCESS_AUD) return deny('access_audience_mismatch', {
-                configuredAudience: env.ACCESS_AUD.slice(0,128),
-                receivedAudience: typeof access.aud === 'string' ? access.aud.slice(0,128) : null,
-                receivedType: typeof access.aud
-            });
+            if (access.aud !== audience) return deny('access_audience_mismatch');
             phase = 'runtime_identity';
             const identity = await access.getIdentity();
             if (typeof identity?.email !== 'string') return deny('access_email_missing');
-            return identity.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase() || deny('access_owner_mismatch');
+            return identity.email.toLowerCase() === adminEmail || deny('access_owner_mismatch');
         }
         // Hostname-based Access can also provide a signed assertion header.
         const token = request.headers.get('cf-access-jwt-assertion');
@@ -32,18 +32,18 @@ export async function authorized(request, env, {access, fetchKeys = fetch, onDen
         const [header, claims] = parts.slice(0,2).map(p => JSON.parse(new TextDecoder().decode(decode(p))));
         const now = Date.now() / 1000;
         if (header.alg !== 'RS256' || typeof header.kid !== 'string') return deny('access_token_algorithm');
-        if (claims.iss !== env.ACCESS_ISSUER) return deny('access_token_issuer');
-        if (!Array.isArray(claims.aud) || !claims.aud.includes(env.ACCESS_AUD)) return deny('access_token_audience');
+        if (claims.iss !== issuer) return deny('access_token_issuer');
+        if (!Array.isArray(claims.aud) || !claims.aud.includes(audience)) return deny('access_token_audience');
         if (!Number.isFinite(claims.exp) || claims.exp <= now || !Number.isFinite(claims.iat) || claims.iat > now + 60 || (claims.nbf !== undefined && (!Number.isFinite(claims.nbf) || claims.nbf > now + 60))) return deny('access_token_time');
         if (typeof claims.email !== 'string') return deny('access_token_email_missing');
-        if (claims.email.toLowerCase() !== env.ADMIN_EMAIL.toLowerCase()) return deny('access_token_owner');
+        if (claims.email.toLowerCase() !== adminEmail) return deny('access_token_owner');
         phase = 'signing_keys';
-        if (!cached || cached.issuer !== env.ACCESS_ISSUER || cached.until < Date.now()) {
-            const response = await fetchKeys(env.ACCESS_ISSUER + '/cdn-cgi/access/certs', {signal:AbortSignal.timeout(5000)});
+        if (!cached || cached.issuer !== issuer || cached.until < Date.now()) {
+            const response = await fetchKeys(issuer + '/cdn-cgi/access/certs', {signal:AbortSignal.timeout(5000)});
             if (!response.ok) return deny('access_keys_unavailable');
             const {keys} = await response.json();
             if (!Array.isArray(keys)) return deny('access_keys_invalid');
-            cached = {issuer:env.ACCESS_ISSUER, until:Date.now()+300000, keys};
+            cached = {issuer, until:Date.now()+300000, keys};
         }
         const jwk = cached.keys.find(k => k.kid === header.kid && k.kty === 'RSA');
         if (!jwk) return deny('access_key_unknown');

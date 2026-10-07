@@ -40,7 +40,7 @@ await writeFile('workers/game/wrangler.production.json', JSON.stringify({
 },null,2));
 await writeFile('workers/analytics/wrangler.production.json', JSON.stringify({
     ...base, name:'anagramish-analytics', d1_databases:binding(analytics),
-    vars:{AUTH_MODE:'access', ADMIN_EMAIL:process.env.ANALYTICS_ADMIN_EMAIL || '',ACCESS_ISSUER:process.env.CF_ACCESS_ISSUER || '',ACCESS_AUD:process.env.CF_ACCESS_AUD || ''}
+    vars:{AUTH_MODE:'access', ADMIN_EMAIL:(process.env.ANALYTICS_ADMIN_EMAIL || '').trim(),ACCESS_ISSUER:(process.env.CF_ACCESS_ISSUER || '').trim(),ACCESS_AUD:(process.env.CF_ACCESS_AUD || '').trim()}
 },null,2));
 // Publish only the frontend allowlist produced by the build, never the repo root.
 await mkdir('workers/game/dist/client',{recursive:true});

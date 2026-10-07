@@ -58,6 +58,8 @@ test('Cloudflare dashboard verifies signed Access claims and ignores forged emai
     }
     const req=token=>new Request('https://analytics.test/',{headers:{'cf-access-jwt-assertion':token,'oai-authenticated-user-email':env.ADMIN_EMAIL}});
     assert.equal(await authorized(req(await signed()),env,{fetchKeys}),true);
+    const pasted={...env,ACCESS_AUD:env.ACCESS_AUD+'\r\n',ACCESS_ISSUER:' '+env.ACCESS_ISSUER+'\n',ADMIN_EMAIL:env.ADMIN_EMAIL+'\r\n'};
+    assert.equal(await authorized(req(await signed()),pasted,{fetchKeys}),true);
     for(const claims of [{aud:['other']},{iss:'https://wrong.cloudflareaccess.com'},{email:'attacker@example.test'},{exp:1},{nbf:Date.now()/1000+1000}])assert.equal(await authorized(req(await signed(claims)),env,{fetchKeys}),false);
     const token=await signed();const parts=token.split('.');parts[1]=encode({email:env.ADMIN_EMAIL});
     assert.equal(await authorized(req(parts.join('.')),env,{fetchKeys}),false);
@@ -97,4 +99,15 @@ test('Access denial diagnostics distinguish failures without exposing identity o
         assert.equal(code,expected);
         assert.doesNotMatch(code,/private-owner|someone@|sensitive-token/);
     }
+});
+
+test('copied Access settings tolerate surrounding whitespace but still reject a different audience',async()=>{
+    const audience='040b76960f1c6bf57074c462abf5d461525f74bbe2e2de4cf33d43f48a97f122';
+    const env={AUTH_MODE:'access',ADMIN_EMAIL:' owner@example.test\r\n',ACCESS_ISSUER:' https://test-team.cloudflareaccess.com\r\n',ACCESS_AUD:audience+'\r\n'};
+    const request=new Request('https://analytics.test/');
+    const access={aud:audience,getIdentity:async()=>({email:'owner@example.test'})};
+    assert.equal(await authorized(request,env,{access}),true);
+    assert.equal(await authorized(request,env,{access:{...access,aud:'different-application'}}),false);
+    assert.equal(await authorized(request,{...env,ACCESS_AUD:'\r\n'},{access}),false);
+    assert.equal(await authorized(request,{...env,ADMIN_EMAIL:'other@example.test\r\n'},{access}),false);
 });
