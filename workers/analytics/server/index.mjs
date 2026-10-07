@@ -36,11 +36,11 @@ async function report(url,env) {
  ]);
  return json({environment,days,from,today,summary:results[0].results[0],daily:results[1].results,sources:results[2].results,locations:results[3].results,puzzles:results[4].results,retention:results[5].results[0],organic:results[6].results[0]});
 }
-export default {async fetch(request,env) {
+export default {async fetch(request,env,ctx) {
  const url=new URL(request.url);
  try {
   if(url.pathname==='/ingest'&&request.method==='POST')return await ingest(request,env);
-  if(!await authorized(request,env))return json({error:'Owner sign-in required.'},403);
+  if(!await authorized(request,env,{access:ctx?.access}))return json({error:'Owner sign-in required.'},403);
   if(url.pathname==='/api/report'&&request.method==='GET')return await report(url,env);
   if(url.pathname==='/'&&request.method==='GET')return new Response(env.AUTH_MODE==='access'?dashboard.replace('<option value="production">','<option value="production" selected>'):dashboard,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff'}});
   return json({error:'Not found'},404);

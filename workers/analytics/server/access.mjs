@@ -2,11 +2,19 @@ let cached;
 function decode(value) {
     return Uint8Array.from(atob(value.replaceAll('-','+').replaceAll('_','/')), c => c.charCodeAt(0));
 }
-export async function authorized(request, env, fetchKeys = fetch) {
+export async function authorized(request, env, {access, fetchKeys = fetch} = {}) {
     // Only the private Sites deployment may trust its platform-injected header.
     if (env.AUTH_MODE === 'sites') return !!env.ADMIN_EMAIL && request.headers.get('oai-authenticated-user-email')?.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
     if (env.AUTH_MODE !== 'access' || !env.ADMIN_EMAIL || !env.ACCESS_AUD || !/^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(env.ACCESS_ISSUER || '')) return false;
     try {
+        // Worker-level Access supplies a trusted runtime context. It is not a
+        // request header and cannot be supplied by a browser or service binding.
+        if (access) {
+            if (access.aud !== env.ACCESS_AUD) return false;
+            const identity = await access.getIdentity();
+            return typeof identity?.email === 'string' && identity.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
+        }
+        // Hostname-based Access can also provide a signed assertion header.
         const token = request.headers.get('cf-access-jwt-assertion');
         if (!token || token.length > 16000) return false;
         const parts = token.split('.');

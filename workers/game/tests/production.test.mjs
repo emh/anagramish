@@ -57,11 +57,26 @@ test('Cloudflare dashboard verifies signed Access claims and ignores forged emai
         return data+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key.privateKey,new TextEncoder().encode(data))).toString('base64url');
     }
     const req=token=>new Request('https://analytics.test/',{headers:{'cf-access-jwt-assertion':token,'oai-authenticated-user-email':env.ADMIN_EMAIL}});
-    assert.equal(await authorized(req(await signed()),env,fetchKeys),true);
-    for(const claims of [{aud:['other']},{iss:'https://wrong.cloudflareaccess.com'},{email:'attacker@example.test'},{exp:1},{nbf:Date.now()/1000+1000}])assert.equal(await authorized(req(await signed(claims)),env,fetchKeys),false);
+    assert.equal(await authorized(req(await signed()),env,{fetchKeys}),true);
+    for(const claims of [{aud:['other']},{iss:'https://wrong.cloudflareaccess.com'},{email:'attacker@example.test'},{exp:1},{nbf:Date.now()/1000+1000}])assert.equal(await authorized(req(await signed(claims)),env,{fetchKeys}),false);
     const token=await signed();const parts=token.split('.');parts[1]=encode({email:env.ADMIN_EMAIL});
-    assert.equal(await authorized(req(parts.join('.')),env,fetchKeys),false);
-    assert.equal(await authorized(req(''),env,fetchKeys),false);
-    assert.equal(await authorized(req(await signed()),{...env,ACCESS_AUD:''},fetchKeys),false);
-    assert.equal(await authorized(req(''),{ADMIN_EMAIL:env.ADMIN_EMAIL},fetchKeys),false);
+    assert.equal(await authorized(req(parts.join('.')),env,{fetchKeys}),false);
+    assert.equal(await authorized(req(''),env,{fetchKeys}),false);
+    assert.equal(await authorized(req(await signed()),{...env,ACCESS_AUD:''},{fetchKeys}),false);
+    assert.equal(await authorized(req(''),{ADMIN_EMAIL:env.ADMIN_EMAIL},{fetchKeys}),false);
+});
+
+test('Worker-level Access authorizes the runtime identity without an assertion header',async()=>{
+    const env={AUTH_MODE:'access',ADMIN_EMAIL:'owner@example.test',ACCESS_ISSUER:'https://test-team.cloudflareaccess.com',ACCESS_AUD:'test-audience'};
+    const request=new Request('https://analytics.test/',{headers:{'cf-access-authenticated-user-email':env.ADMIN_EMAIL,'oai-authenticated-user-email':env.ADMIN_EMAIL}});
+    const fetchKeys=()=>{throw new Error('Runtime identity must not fetch JWT keys');};
+    const access={aud:env.ACCESS_AUD,getIdentity:async()=>({email:'OWNER@example.test'})};
+    assert.equal(await authorized(request,env,{access,fetchKeys}),true);
+    assert.equal(await authorized(request,env,{fetchKeys}),false);
+    assert.equal(await authorized(request,env,{access:{...access,aud:'another-app'},fetchKeys}),false);
+    for(const identity of [{email:'another@example.test'},{},null]) {
+        assert.equal(await authorized(request,env,{access:{...access,getIdentity:async()=>identity},fetchKeys}),false);
+    }
+    assert.equal(await authorized(request,env,{access:{...access,getIdentity:async()=>{throw new Error('Unavailable');}},fetchKeys}),false);
+    assert.equal(await authorized(request,{...env,ACCESS_AUD:''},{access,fetchKeys}),false);
 });

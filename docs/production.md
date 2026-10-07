@@ -27,11 +27,11 @@ The browser stores a signed anonymous player token on `anagramish.com` and sends
 After the first Worker deployment:
 
 1. Set up Cloudflare Zero Trust and choose an Access team name.
-2. Open **Workers & Pages → anagramish-analytics → Settings → Domains & Routes** and enable **Cloudflare Access** for its `workers.dev` address. Configure the corresponding Access application to cover the entire hostname, with an **Allow** policy for your exact email. One-time PIN login is sufficient. Remove any broad Allow policies; do not add a public Bypass policy.
+2. Open **Workers & Pages → anagramish-analytics → Access**, enable Access for **All traffic**, and select the Cloudflare account policy. Configure the corresponding Access application to cover the entire hostname, with an **Allow** policy for your exact email. One-time PIN login is sufficient. Remove any broad Allow policies; do not add a public Bypass policy.
 3. From that Access application, copy the **Application Audience (AUD) Tag**. Add repository variables `CF_ACCESS_AUD` with that tag and `CF_ACCESS_ISSUER` with `https://YOUR-TEAM.cloudflareaccess.com` (no trailing slash). Keep `ANALYTICS_ADMIN_EMAIL` set to the same allowed email.
 4. Run **Actions → Deploy production → Run workflow** on `main`. Open the analytics URL and sign in. Reports default to Production.
 
-The Worker independently verifies the Access JWT signature, issuer, audience, expiry, and owner email. Bare email headers are not trusted in production. Missing Access settings fail closed. The game sends analytics through a private Cloudflare service binding with a separate ingestion secret, so it does not need an Access bypass or a browser analytics credential.
+For Worker-level Access, the Worker checks the trusted `ctx.access` application audience and the owner email returned by `ctx.access.getIdentity()`. For hostname-based Access, it independently verifies the assertion JWT signature, issuer, audience, expiry, and owner email. Bare email headers are not trusted in production. Missing Access settings fail closed. The game sends analytics through a private Cloudflare service binding with a separate ingestion secret, so it does not need an Access bypass or a browser analytics credential.
 
 Preview deployments use the distinct `AUTH_MODE=sites` setting and retain their private hosting layer. Never enable Sites authentication mode on a public Cloudflare Worker.
 
