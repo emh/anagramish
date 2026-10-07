@@ -3,7 +3,7 @@ function decode(value) {
     return Uint8Array.from(atob(value.replaceAll('-','+').replaceAll('_','/')), c => c.charCodeAt(0));
 }
 export async function authorized(request, env, {access, fetchKeys = fetch, onDenied = () => {}} = {}) {
-    const deny = code => { onDenied(code); return false; };
+    const deny = (code, details) => { onDenied(code, details); return false; };
     let phase = 'identity';
     // Only the private Sites deployment may trust its platform-injected header.
     if (env.AUTH_MODE === 'sites') return !!env.ADMIN_EMAIL && request.headers.get('oai-authenticated-user-email')?.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
@@ -12,7 +12,11 @@ export async function authorized(request, env, {access, fetchKeys = fetch, onDen
         // Worker-level Access supplies a trusted runtime context. It is not a
         // request header and cannot be supplied by a browser or service binding.
         if (access) {
-            if (access.aud !== env.ACCESS_AUD) return deny('access_audience_mismatch');
+            if (access.aud !== env.ACCESS_AUD) return deny('access_audience_mismatch', {
+                configuredAudience: env.ACCESS_AUD.slice(0,128),
+                receivedAudience: typeof access.aud === 'string' ? access.aud.slice(0,128) : null,
+                receivedType: typeof access.aud
+            });
             phase = 'runtime_identity';
             const identity = await access.getIdentity();
             if (typeof identity?.email !== 'string') return deny('access_email_missing');
