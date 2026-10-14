@@ -1,0 +1,27 @@
+name: Test
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix workers/game
+      - run: npm ci --prefix workers/analytics
+      - run: npm run build --prefix workers/analytics
+      - run: npm run build --prefix workers/game
+      - run: npm test --prefix workers/game
+      - name: Check dashboard JavaScript syntax
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import {Script} from 'node:vm';
+          const html=readFileSync('workers/analytics/server/dashboard.html','utf8');
+          new Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+          NODE
