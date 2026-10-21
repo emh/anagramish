@@ -801,16 +801,22 @@ const renderHistory = (app) => {
 
 // Tutorial events are separate from game sessions and never affect player results.
 let pendingTutorialEvents = [];
-const flushTutorialEvents = () => {
-    if (!isDataLoaded) return;
-    const pending = pendingTutorialEvents;
-    pendingTutorialEvents = [];
-    for (const event of pending) {
-        api('/api/tutorial', event).catch(() => pendingTutorialEvents.push(event));
-    }
+let flushingTutorialEvents = false;
+const flushTutorialEvents = async () => {
+    if (!isDataLoaded || flushingTutorialEvents) return;
+    flushingTutorialEvents = true;
+    try {
+        while (pendingTutorialEvents.length) {
+            await api('/api/tutorial', pendingTutorialEvents[0]);
+            pendingTutorialEvents.shift();
+        }
+    } catch {
+        // Keep the failed event first; retry on the next event or reconnection.
+    } finally { flushingTutorialEvents = false; }
 };
+window.addEventListener('online', flushTutorialEvents);
 const recordTutorialEvent = (action) => {
-    pendingTutorialEvents.push({id:state.tutorial.id, action, attribution:attribution()});
+    pendingTutorialEvents.push({id:state.tutorial.id, action, lesson:state.tutorial.lessonIndex+1, attribution:attribution()});
     flushTutorialEvents();
 };
 
@@ -827,6 +833,7 @@ const startTutorial = () => {
 const openTutorialLesson = (lessonIndex) => {
     const lesson = TUTORIAL_LESSONS[lessonIndex];
     state.tutorial.lessonIndex = lessonIndex;
+    recordTutorialEvent('lesson_start');
     state.tutorial.feedback = null;
     state.tutorial.showHint = false;
     state.state = STATES.TUTORIAL;
@@ -852,6 +859,7 @@ const submitTutorialWord = () => {
         state.position = null;
         t.feedback = null;
         killKeyboard();
+        recordTutorialEvent('lesson_complete');
         if (t.lessonIndex === TUTORIAL_LESSONS.length - 1) {
             localStorage.setItem('anagramish-tutorial-completed', 'true');
             recordTutorialEvent('complete');
@@ -865,6 +873,7 @@ const submitTutorialWord = () => {
 };
 
 const exitTutorial = () => {
+    if (state.tutorial && !(state.position===null && state.tutorial.lessonIndex===TUTORIAL_LESSONS.length-1)) recordTutorialEvent('exit');
     state.tutorial = null;
     state.state = STATES.WELCOME;
     render();
@@ -971,6 +980,7 @@ const render = () => {
 
 get('#back').addEventListener('click', () => {
     if (checkingGuess || startingGame) return;
+    if (state.tutorial) {exitTutorial();return;}
     stopClock();
     state.tutorial = null;
     state.state = STATES.WELCOME;

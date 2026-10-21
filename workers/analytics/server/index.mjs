@@ -1,7 +1,8 @@
 import {authorized} from './access.mjs';
 import dashboard from './dashboard.html';
+import {startActivitySQL,tutorialFunnelSQL,tutorialLessonsSQL} from './engagement.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
-const allowedKinds=new Set(['visit','game_start','game_play','game_complete','tutorial_start','tutorial_complete']);
+const allowedKinds=new Set(['visit','game_start','game_play','game_complete','tutorial_start','tutorial_complete','tutorial_lesson_start','tutorial_lesson_complete','tutorial_exit']);
 const fields=['id','kind','player','occurredAt','day','environment','mode','puzzleDate','hard','seconds','mistakes','wordCount','resumed','source','medium','campaign','referrer','landing','country','region','device'];
 const cols=['id','kind','player','occurred_at','day','environment','mode','puzzle_date','hard','seconds','mistakes','word_count','resumed','source','medium','campaign','referrer','landing','country','region','device'];
 async function secureEquals(a,b) {
@@ -65,9 +66,12 @@ async function report(url,env) {
    GROUP BY a.puzzle_date,a.hard ORDER BY a.puzzle_date DESC,a.hard LIMIT 40`).bind(environment,from,today),
   env.DB.prepare(`WITH firsts AS (${firsts}), active AS (SELECT DISTINCT player,day FROM events WHERE environment=? AND kind='game_play') SELECT SUM(first_day<date(?,'-1 day')) eligible_d1,SUM(first_day<date(?,'-1 day') AND EXISTS(SELECT 1 FROM active WHERE active.player=f.player AND active.day=date(f.first_day,'+1 day'))) returned_d1,SUM(first_day<date(?,'-7 day')) eligible_d7,SUM(first_day<date(?,'-7 day') AND EXISTS(SELECT 1 FROM active WHERE active.player=f.player AND active.day=date(f.first_day,'+7 day'))) returned_d7 FROM firsts f WHERE first_day BETWEEN ? AND ?`).bind(environment,environment,today,today,today,today,from,today),
   env.DB.prepare(`SELECT COUNT(DISTINCT CASE WHEN e.kind='visit' AND lower(COALESCE(e.medium,''))='organic' THEN e.player END) visitors,COUNT(DISTINCT CASE WHEN e.kind='game_play' AND lower(COALESCE(e.medium,''))='organic' THEN e.player END) players,COUNT(DISTINCT CASE WHEN e.kind='game_complete' AND lower(COALESCE(s.medium,''))='organic' THEN e.player END) finishers FROM events e LEFT JOIN events s ON e.kind='game_complete' AND s.id='start:'||substr(e.id,10) AND s.environment=e.environment WHERE e.environment=? AND e.day BETWEEN ? AND ?`).bind(environment,from,today),
-  env.DB.prepare(acquisition).bind(environment,from,today,environment,environment,today,today,today,today)
+  env.DB.prepare(acquisition).bind(environment,from,today,environment,environment,today,today,today,today),
+  env.DB.prepare(startActivitySQL).bind(environment,from,today),
+  env.DB.prepare(tutorialFunnelSQL).bind(environment,from,today,...Array(5).fill(Date.now())),
+  env.DB.prepare(tutorialLessonsSQL).bind(environment,from,today)
  ]);
- return json({environment,days,from,today,summary:results[0].results[0],daily:results[1].results,sources:results[2].results,locations:results[3].results,puzzles:results[4].results,retention:results[5].results[0],organic:results[6].results[0],acquisition:results[7].results});
+ return json({environment,days,from,today,summary:results[0].results[0],daily:results[1].results,sources:results[2].results,locations:results[3].results,puzzles:results[4].results,retention:results[5].results[0],organic:results[6].results[0],acquisition:results[7].results,start_activity:results[8].results,tutorial_funnel:results[9].results[0],tutorial_lessons:results[10].results});
 }
 export default {async fetch(request,env,ctx) {
  const url=new URL(request.url);
