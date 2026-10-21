@@ -54,9 +54,11 @@ async function api(request,env,ctx) {
   ctx.waitUntil(flush(env).catch(error=>console.error('Analytics delivery deferred',error.message))); return reply({ok:true});
  }
  if(url.pathname==='/api/tutorial') {
-  if(!uuid(input.id)||!['start','complete'].includes(input.action))return reply({error:'Invalid tutorial event.'},400);
-  const kind=input.action==='start'?'tutorial_start':'tutorial_complete';
-  await enqueue(env.DB,event(env,player,kind,`tutorial:${player}:${input.id}:${input.action}`,{mode:'tutorial',...attribution(request,input.attribution)})).run();
+  const lessonEvent=['lesson_start','lesson_complete','exit'].includes(input.action);
+  if(!uuid(input.id)||!['start','complete','lesson_start','lesson_complete','exit'].includes(input.action)||
+   (lessonEvent&&(!Number.isInteger(input.lesson)||input.lesson<1||input.lesson>3)))return reply({error:'Invalid tutorial event.'},400);
+  const kind=`tutorial_${input.action}`;
+  await enqueue(env.DB,event(env,player,kind,`tutorial:${player}:${input.id}:${input.action}${lessonEvent?':'+input.lesson:''}`,{mode:'tutorial',...attribution(request,input.attribution)})).run();
   ctx.waitUntil(flush(env).catch(error=>console.error('Analytics delivery deferred',error.message)));
   return reply({ok:true});
  }
