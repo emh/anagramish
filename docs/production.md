@@ -53,3 +53,57 @@ The API uses a Cloudflare rate-limit binding (120 requests per minute per IP per
 ## Current access limitations
 
 The coding environment has no Cloudflare account credentials. Its GitHub connection supports source pushes, but direct GitHub API calls for Pages settings and Actions secrets/variables are unavailable. Account setup must be completed in those dashboards before the branch is pushed to `main`. No production deployment is implied by a feature-branch push.
+
+## Analytics daily summary cache
+
+The analytics Worker no longer runs report queries over raw `events`. Migration
+`0001_daily_summaries.sql` adds a cursor index, private summary/checkpoint tables,
+a small report cache, and an insert trigger that records newly received events.
+Existing production deployment applies the migration before deploying the Worker.
+The migration does not delete or change historical events.
+
+- Every five minutes the analytics Cron Trigger summarizes new events, in batches
+  of at most 2,000. Opening the owner dashboard also advances backfill. The first
+  load shows a preparation message and retries until the initial history is ready.
+- Daily aggregates are packed into parts of at most 500 raw rowids, keeping each D1
+  value bounded. Finalized parts never need rebuilding. Only the unfinished part
+  (at most 499 old events) is reread when new events arrive. An environment/rowid
+  index makes this a range seek, not a scan of the whole history.
+- Daily summaries retain compact browser, session, attribution and timestamp facts
+  for exact period uniqueness, cross-day completions, acquisition and tutorial
+  cohorts. Those facts remain private and are never returned to the browser.
+  Reports use all historical summaries for first-ever cohorts; daily uniques are
+  not summed into period uniques. Raw events remain the recovery source.
+- The 7/28/90-day report responses are cached separately per environment and cursor.
+  A warm dashboard request reads a checkpoint and one response row, plus the
+  checkpoint lease check. It reads no raw events. This is D1-backed; restarting
+  the Worker or using another Cloudflare location does not discard the cache.
+- Report snapshots expire within five minutes and at UTC midnight. Cohort age is
+  recalculated even without new activity. The dashboard and JSON export include
+  the summary update time. Refresh does not bypass the cache.
+- Duplicate event retries do not advance the cursor. Late events are appended and
+  update the correct historical day, first source and session outcomes. A lease
+  prevents concurrent rebuilds; summaries and the cursor publish in one D1 batch.
+- The insert trigger adds one small checkpoint write per accepted event, and the
+  extra event index adds index writes. This deliberately trades modest writes and
+  storage for sharply fewer report reads. The cache does not change game API reads.
+
+Validation: SQLite differential tests compare every report section with the former
+SQL queries, plus bounded backfill, late delivery, duplicate retries, UTC rollover,
+refresh throttling and recovery after failure. A Miniflare/D1 test checks that a
+warm report reads at most four rows in its cache-read batch after 1,200 events.
+Measure the real production reduction in Cloudflare's D1 `rows_read` metrics after
+deployment; a percentage from a synthetic fixture is not a production measurement.
+
+Operational limits: raw events are append-only. Do not delete/update raw events or
+run VACUUM (which may renumber implicit rowids) while retaining these checkpoints.
+For an intentional correction or future retention policy, stop summary refreshes,
+clear `analytics_daily_summaries` and `analytics_report_cache`, then reset each
+`analytics_summary_state` cursor/refreshed_at/next_refresh/lease_until to 0,
+lease_token to NULL, and latest_rowid to the current MAX(events.rowid) for that
+environment. Re-enable refreshes to rebuild. Any future change to summary format
+must likewise explicitly invalidate/version the derived tables.
+
+The cache removes D1 scans, but cold report aggregation still grows with retained
+summary history in Worker memory. If traffic grows substantially beyond the
+current scale, compact long-term player/cohort facts before pruning raw history.
