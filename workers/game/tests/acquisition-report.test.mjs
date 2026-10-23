@@ -5,7 +5,7 @@ import {setup} from '../scripts/local.mjs';
 let app;
 before(async()=>{app=await setup();});
 after(async()=>{await app?.dispose();});
-beforeEach(async()=>{await app.analyticsDb.prepare('DELETE FROM events').run();});
+beforeEach(async()=>{await app.analyticsDb.batch([app.analyticsDb.prepare('DELETE FROM events'),app.analyticsDb.prepare('DELETE FROM analytics_daily_summaries'),app.analyticsDb.prepare('DELETE FROM analytics_report_cache'),app.analyticsDb.prepare('UPDATE analytics_summary_state SET cursor=0,latest_rowid=0,refreshed_at=0,next_refresh=0,lease_until=0,lease_token=NULL')]);});
 const ago=days=>Date.now()-days*86400000;
 const date=at=>new Date(at).toISOString().slice(0,10);
 function event(kind,player,days,{id=crypto.randomUUID(),at=ago(days),...extra}={}) {
