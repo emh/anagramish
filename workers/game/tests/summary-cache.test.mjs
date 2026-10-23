@@ -103,3 +103,31 @@ test('refresh interval, leases and failure recovery prevent duplicate builds and
  assert.equal((await cachedReport(env,'production',7,now+800001)).summary.visitors,3);
 });
 test('empty reports preserve prior API shapes',async()=>{await check(setup());});
+test('partial parts stay correct across many environments, days and refreshes',async()=>{
+ const env=setup();let n=10000;
+ for(let round=0;round<6;round++) {
+  // Reverse event-time order exercises historical days arriving in new parts.
+  for(let i=0;i<173;i++) {
+   const player=i%19,at=ago((i*7+round)%100),session=++n;
+   const extra={environment:i%11===0?'preview':'production',source:['playlin','google','newsletter'][i%3],medium:i%3===1?'organic':null,country:['US','CA','GB'][i%3],region:['A','B'][i%2],mode:i%4?'daily':'practice',hard:i%2};
+   env.insert(event('visit',session,player,at,extra));
+   env.insert(event('game_start',session,player,at,extra));
+   env.insert(event('game_play',session,player,at,extra));
+   if(i%3)env.insert(event('game_complete',session,player,at+60000,{...extra,seconds:i+1,mistakes:i%10,word_count:4}));
+  }
+  for(const days of [7,28,90])await check(env,days,now+round*300000);
+ }
+ const result=await cachedReport(env,'preview',28,now+1800000);
+ assert.deepEqual(normalized(result),normalized(await rawReport(env,'preview',28,now+1800000)));
+});
+test('an expired builder cannot overwrite a newer checkpoint',async()=>{
+ const env=setup();env.insert(event('visit',1,1,ago(1)));
+ const batch=env.DB.batch;let takenOver=false;
+ env.DB.batch=async statements=>{
+  if(!takenOver){takenOver=true;await refreshSummaries(env,'production',now+61000);}
+  return batch(statements);
+ };
+ await refreshSummaries(env,'production',now);
+ assert.equal(env.sqlite.prepare("SELECT refreshed_at FROM analytics_summary_state WHERE environment='production'").get().refreshed_at,now+61000);
+ await check(env,7,now+61001);
+});
