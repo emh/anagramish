@@ -131,3 +131,12 @@ test('an expired builder cannot overwrite a newer checkpoint',async()=>{
  assert.equal(env.sqlite.prepare("SELECT refreshed_at FROM analytics_summary_state WHERE environment='production'").get().refreshed_at,now+61000);
  await check(env,7,now+61001);
 });
+
+test('an off-schedule request does not skip the next five-minute Cron boundary',async()=>{
+ const env=setup();env.SUMMARY_REFRESH_MS=300000;
+ env.insert(event('visit',1,1,ago(1)));
+ await cachedReport(env,'production',7,now+120000);
+ env.insert(event('visit',2,2,ago(0)));
+ assert.equal((await cachedReport(env,'production',7,now+299999)).summary.visitors,1);
+ assert.equal((await cachedReport(env,'production',7,now+300000)).summary.visitors,2);
+});
