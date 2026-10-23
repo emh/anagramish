@@ -4,6 +4,11 @@ import {summarize,aggregate,PART_SIZE} from './daily-summary.mjs';
 // part is reread; completed parts are immutable. A late event is appended with a
 // new rowid and contributes to its actual UTC day, even if that day is old.
 const PAGE_SIZE=2000;
+// Align to Cron boundaries: a request at :02 must not suppress the :05 run.
+const nextRefresh=(env,now)=>{
+ const interval=Number(env.SUMMARY_REFRESH_MS??300000);
+ return interval>0?(Math.floor(now/interval)+1)*interval:0;
+};
 export async function refreshSummaries(env,environment,now=Date.now()) {
  const db=env.DB,token=crypto.randomUUID();
  const state=await db.prepare(`UPDATE analytics_summary_state SET lease_token=?,lease_until=?
@@ -14,7 +19,7 @@ export async function refreshSummaries(env,environment,now=Date.now()) {
  try {
   if(state.cursor>=state.latest_rowid) {
    await db.prepare(`UPDATE analytics_summary_state SET refreshed_at=?,next_refresh=?,lease_until=0,lease_token=NULL
-    WHERE environment=? AND lease_token=?`).bind(now,now+Number(env.SUMMARY_REFRESH_MS??300000),environment,token).run();
+    WHERE environment=? AND lease_token=?`).bind(now,nextRefresh(env,now),environment,token).run();
    return;
   }
   const firstPart=Math.floor(state.cursor/PART_SIZE);
@@ -29,7 +34,7 @@ export async function refreshSummaries(env,environment,now=Date.now()) {
    SELECT ?,?,? WHERE ${guard}`).bind(environment,part,JSON.stringify(summarize(rows)),environment,token));
   const caughtUp=cursor>=state.latest_rowid;
   statements.push(db.prepare(`UPDATE analytics_summary_state SET cursor=?,refreshed_at=?,next_refresh=?,lease_until=0,lease_token=NULL
-   WHERE environment=? AND lease_token=?`).bind(cursor,caughtUp?now:state.refreshed_at,caughtUp?now+Number(env.SUMMARY_REFRESH_MS??300000):0,environment,token));
+   WHERE environment=? AND lease_token=?`).bind(cursor,caughtUp?now:state.refreshed_at,caughtUp?nextRefresh(env,now):0,environment,token));
   // Replacement and checkpoint publish atomically, never half a daily summary.
   await db.batch(statements);
  } catch(error) {
