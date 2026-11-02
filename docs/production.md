@@ -107,3 +107,19 @@ must likewise explicitly invalidate/version the derived tables.
 The cache removes D1 scans, but cold report aggregation still grows with retained
 summary history in Worker memory. If traffic grows substantially beyond the
 current scale, compact long-term player/cohort facts before pruning raw history.
+
+## Tutorial experiment
+
+The game Worker enables `tutorial-short-v1` through `TUTORIAL_EXPERIMENT` in
+`scripts/production-config.mjs`. Migration `0002_tutorial_experiment.sql` adds
+nullable experiment and variant fields before analytics and API deployment.
+Existing summaries remain valid; this additive metadata needs no raw-history
+rebuild. Cached reports acquire the experiment section within their normal
+five-minute expiry. The dashboard cohort spans the lifetime of the experiment,
+independent of the selected report period.
+
+See [the experiment plan](growth/tutorial-experiment-2026-11-02.md) for assignment,
+eligibility, the planned review and limitations. To stop enrollment, set that
+configuration value to an empty string and deploy; already assigned attempts can
+still report outcomes. Direct Cloudflare variable changes are overwritten by the
+next GitHub deployment.

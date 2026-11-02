@@ -1,5 +1,6 @@
 import {signPlayer,verifyPlayer} from './player-token.mjs';
 import {pairCount,puzzle,practicePair,checkLadder} from './game.mjs';
+import {TUTORIAL_EXPERIMENT,tutorialVariant} from '../../../tutorial-experiment.mjs';
 
 const uuid = v => typeof v==='string' && /^[a-f0-9-]{36}$/.test(v);
 const short = (v,n=100) => typeof v==='string'?v.slice(0,n):null;
@@ -44,7 +45,9 @@ async function api(request,env,ctx) {
   const origin=request.headers.get('origin');
   if(origin&&origin!==url.origin&&origin!==env.FRONTEND_ORIGIN)return reply({error:'Invalid request origin.'},403);
  }
- if(request.method==='GET'&&url.pathname==='/api/config')return reply({pairCount,...(production?{playerToken:await signPlayer(player,env.PLAYER_SIGNING_KEY)}:{})});
+ if(request.method==='GET'&&url.pathname==='/api/config')return reply({pairCount,trafficEnvironment:production?'production':'preview',
+  tutorialExperiment:env.TUTORIAL_EXPERIMENT===TUTORIAL_EXPERIMENT?{id:TUTORIAL_EXPERIMENT,variant:await tutorialVariant(player)}:null,
+  ...(production?{playerToken:await signPlayer(player,env.PLAYER_SIGNING_KEY)}:{})});
  if(request.method==='GET'&&url.pathname==='/api/puzzle')return reply(puzzle(url.searchParams.get('date')));
  if(request.method!=='POST')return reply({error:'Not found.'},404);
  const input=await body(request);
@@ -58,7 +61,14 @@ async function api(request,env,ctx) {
   if(!uuid(input.id)||!['start','complete','lesson_start','lesson_complete','exit'].includes(input.action)||
    (lessonEvent&&(!Number.isInteger(input.lesson)||input.lesson<1||input.lesson>3)))return reply({error:'Invalid tutorial event.'},400);
   const kind=`tutorial_${input.action}`;
-  await enqueue(env.DB,event(env,player,kind,`tutorial:${player}:${input.id}:${input.action}${lessonEvent?':'+input.lesson:''}`,{mode:'tutorial',...attribution(request,input.attribution)})).run();
+  let experiment=null,variant=null;
+  if(input.experiment!=null||input.variant!=null) {
+   if(input.experiment!==TUTORIAL_EXPERIMENT||input.variant!==await tutorialVariant(player)||
+    (input.variant==='short'&&lessonEvent&&input.lesson!==1))return reply({error:'Invalid tutorial assignment.'},400);
+   experiment=input.experiment;variant=input.variant;
+  }
+  // Keep accepting already-exposed attempts after enrollment is disabled.
+  await enqueue(env.DB,event(env,player,kind,`tutorial:${player}:${input.id}:${input.action}${lessonEvent?':'+input.lesson:''}`,{mode:'tutorial',experiment,variant,...attribution(request,input.attribution)})).run();
   ctx.waitUntil(flush(env).catch(error=>console.error('Analytics delivery deferred',error.message)));
   return reply({ok:true});
  }

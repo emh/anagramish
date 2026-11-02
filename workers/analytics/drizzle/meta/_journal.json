@@ -15,6 +15,13 @@
       "when": 1792716404605,
       "tag": "0001_daily_summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793646161808,
+      "tag": "0002_tutorial_experiment",
+      "breakpoints": true
     }
   ]
 }

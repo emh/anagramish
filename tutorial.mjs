@@ -34,8 +34,19 @@ export const TUTORIAL_LESSONS = [
     }
 ];
 
-export function checkTutorialWord(lessonIndex, stepIndex, word) {
-    const lesson = TUTORIAL_LESSONS[lessonIndex];
+export const SHORT_TUTORIAL_LESSONS = [{
+    title: 'Change a letter. Move the letters.',
+    description: 'Connect CAT to OAR. Each step replaces exactly one letter, and you can rearrange the letters.',
+    path: ['cat', 'tar', 'oar'],
+    prompts: ['Replace C with R, then rearrange A, T and R to make TAR. Type TAR and press Enter.'],
+    hints: ['Keep A and T. Add R. Your next word is TAR.'],
+    success: 'That’s it! CAT → TAR replaces C with R and rearranges the letters. TAR → OAR replaces T with O. The orange end word is already filled in. In today’s five-letter puzzle, build your own ladder of valid words.'
+}];
+
+export const tutorialLessons = variant => variant === 'short' ? SHORT_TUTORIAL_LESSONS : TUTORIAL_LESSONS;
+
+export function checkTutorialWord(lessonIndex, stepIndex, word, variant = 'control') {
+    const lesson = tutorialLessons(variant)[lessonIndex];
     const previous = lesson.path[stepIndex];
     const expected = lesson.path[stepIndex + 1];
     if (word.length !== previous.length) return `Fill all ${previous.length} letters, then press Enter.`;

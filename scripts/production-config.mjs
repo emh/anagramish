@@ -33,7 +33,7 @@ const base = {main:'dist/server/index.js', compatibility_date:'2026-08-01', work
 const binding = db => [{binding:'DB',database_name:db.name,database_id:db.uuid,migrations_dir:'drizzle'}];
 await writeFile('workers/game/wrangler.production.json', JSON.stringify({
     ...base, name:'anagramish-api', d1_databases:binding(game),
-    vars:{TRAFFIC_ENV:'production',FRONTEND_ORIGIN:'https://anagramish.com'},
+    vars:{TRAFFIC_ENV:'production',TUTORIAL_EXPERIMENT:'tutorial-short-v1',FRONTEND_ORIGIN:'https://anagramish.com'},
     services:[{binding:'ANALYTICS',service:'anagramish-analytics'}],
     ratelimits:[{name:'RATE_LIMITER',namespace_id:'1001',simple:{limit:120,period:60}}],
     triggers:{crons:['*/5 * * * *']}

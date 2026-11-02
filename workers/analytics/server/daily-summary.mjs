@@ -1,3 +1,4 @@
+import {tutorialExperimentReport} from './tutorial-experiment.mjs';
 // Cache additive totals and the minimum identity/timing facts needed for exact
 // distinct counts, cross-day sessions, acquisition and tutorial cohorts.
 // Private identifiers stay in D1; only aggregate numbers leave /api/report.
@@ -23,7 +24,7 @@ export function summarize(events) {
   if(['game_start','game_play','game_complete'].includes(e.kind)&&e.mode==='daily'&&e.puzzle_date!==null) {
    const a={session,player:e.player,puzzle_date:e.puzzle_date,hard:e.hard};d.sessions.set(JSON.stringify(a),a);
   }
-  if(e.kind==='tutorial_start') {d.tutorial_starts++;d.tutorials.push({id:e.id,player:e.player,at:e.occurred_at});}
+  if(e.kind==='tutorial_start') {d.tutorial_starts++;d.tutorials.push({id:e.id,player:e.player,at:e.occurred_at,...(e.experiment?{experiment:e.experiment,variant:e.variant}:{})});}
   if(e.kind==='tutorial_complete') {d.tutorial_completions++;d.tutorial_completed.push({id:e.id,player:e.player,at:e.occurred_at});}
   if(e.kind==='tutorial_lesson_start')d.lessons.push({id:e.id,player:e.player,lesson:Number(e.id.slice(-1))});
   if(e.kind==='tutorial_lesson_complete')d.lesson_completed.push([e.id,e.player]);
@@ -126,6 +127,7 @@ export function aggregate(summaries,{environment,days,now=Date.now()}) {
  }
  const byText=(a,b)=>a<b?-1:a>b?1:0;
  return {environment,days,from,today,summary,
+  tutorial_experiment:tutorialExperimentReport({firstTutorials,firsts,playerPlays,playerCompletions,tutorialCompleted,active,now}),
   daily:[...daily.values()].map(r=>({...r,visitors:r.visitors.size,players:r.players.size,new_players:r.new_players.size})).sort((a,b)=>byText(b.day,a.day)),
   sources:[...sources.values()].map(r=>({...r,players:r.players.size})).sort((a,b)=>b.players-a.players||byText(key(a.source,a.medium,a.campaign),key(b.source,b.medium,b.campaign))).slice(0,30),
   locations:[...locations.values()].map(r=>({...r,players:r.players.size})).sort((a,b)=>b.players-a.players||byText(key(a.country,a.region),key(b.country,b.region))).slice(0,20),
