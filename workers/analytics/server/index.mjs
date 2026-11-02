@@ -3,14 +3,14 @@ import dashboard from './dashboard.html';
 import {cachedReport,refreshSummaries} from './summary-cache.mjs';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
 const allowedKinds=new Set(['visit','game_start','game_play','game_complete','tutorial_start','tutorial_complete','tutorial_lesson_start','tutorial_lesson_complete','tutorial_exit']);
-const fields=['id','kind','player','occurredAt','day','environment','mode','puzzleDate','hard','seconds','mistakes','wordCount','resumed','source','medium','campaign','referrer','landing','country','region','device'];
-const cols=['id','kind','player','occurred_at','day','environment','mode','puzzle_date','hard','seconds','mistakes','word_count','resumed','source','medium','campaign','referrer','landing','country','region','device'];
+const fields=['id','kind','player','occurredAt','day','environment','mode','puzzleDate','hard','seconds','mistakes','wordCount','resumed','source','medium','campaign','referrer','landing','country','region','device','experiment','variant'];
+const cols=['id','kind','player','occurred_at','day','environment','mode','puzzle_date','hard','seconds','mistakes','word_count','resumed','source','medium','campaign','referrer','landing','country','region','device','experiment','variant'];
 async function secureEquals(a,b) {
  const digest=async x=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(x)));
  const [x,y]=await Promise.all([digest(a),digest(b)]);let d=0;for(let i=0;i<x.length;i++)d|=x[i]^y[i];return d===0;
 }
 function validEvent(e) {
- return e && allowedKinds.has(e.kind) && typeof e.id==='string' && e.id.length<=160 && /^[a-f0-9-]{36}$/.test(e.player) && ['preview','production'].includes(e.environment) && Number.isSafeInteger(e.occurredAt) && e.occurredAt>0 && e.occurredAt<=Date.now()+60000 && e.day===new Date(e.occurredAt).toISOString().slice(0,10) && fields.every(k=>e[k]===undefined||e[k]===null||typeof e[k]==='number'||(typeof e[k]==='string'&&e[k].length<=200));
+ return e && allowedKinds.has(e.kind) && ((e.experiment==null&&e.variant==null)||(e.kind.startsWith('tutorial_')&&e.experiment==='tutorial-short-v1'&&['control','short'].includes(e.variant))) && typeof e.id==='string' && e.id.length<=160 && /^[a-f0-9-]{36}$/.test(e.player) && ['preview','production'].includes(e.environment) && Number.isSafeInteger(e.occurredAt) && e.occurredAt>0 && e.occurredAt<=Date.now()+60000 && e.day===new Date(e.occurredAt).toISOString().slice(0,10) && fields.every(k=>e[k]===undefined||e[k]===null||typeof e[k]==='number'||(typeof e[k]==='string'&&e[k].length<=200));
 }
 async function ingest(request,env) {
  if(!env.INGEST_TOKEN||!await secureEquals(request.headers.get('authorization')??'',`Bearer ${env.INGEST_TOKEN}`))return json({error:'Unauthorized'},401);

@@ -17,6 +17,7 @@ function setup({historical=[]}={}) {
  const insert=e=>{const cols=Object.keys(e);sqlite.prepare(`INSERT OR IGNORE INTO events(${cols.join(',')}) VALUES(${cols.map(()=>'?').join(',')})`).run(...Object.values(e));};
  historical.forEach(insert);
  sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0001_daily_summaries.sql',import.meta.url),'utf8'));
+ sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0002_tutorial_experiment.sql',import.meta.url),'utf8'));
  return {sqlite,DB:db,queries,insert,SUMMARY_REFRESH_MS:0};
 }
 const now=Date.parse('2026-10-23T12:00:00Z'),day=at=>new Date(at).toISOString().slice(0,10),ago=n=>now-n*86400000;
@@ -29,7 +30,7 @@ function tutorial(action,n,player,at,lesson) {
  return event('tutorial_'+action,n,player,at,{id:`tutorial:${id(player)}:${id(n)}:${action}${lesson?':'+lesson:''}`,mode:'tutorial'});
 }
 function normalized(report) {
- const {cache,...r}=report;
+ const {cache,tutorial_experiment,...r}=report;
  // Original SQL leaves ties in these rankings unspecified.
  for(const field of ['sources','locations'])r[field]=[...r[field]].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
  return r;

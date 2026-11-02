@@ -1,7 +1,8 @@
 import { api } from './api-client.mjs';
 import { get, set } from './html.mjs';
 import { compareWords, emptyBoard, emptyRow } from './utils.js';
-import { TUTORIAL_LESSONS, checkTutorialWord } from './tutorial.mjs';
+import { tutorialLessons, checkTutorialWord } from './tutorial.mjs';
+import { tutorialChoice } from './tutorial-experiment.mjs';
 import { getAttribution } from './acquisition.mjs';
 
 // The initial HTML is also the welcome screen, so rules are readable without JS.
@@ -45,6 +46,7 @@ const state = {
 
 let pairCount = 0;
 let isDataLoaded = false;
+let tutorialAssignment = {variant:'control', experiment:null};
 let startingGame = false;
 let checkingGuess = false;
 const attribution = getAttribution;
@@ -53,6 +55,7 @@ const loadWordData = async () => {
     try {
         const config = await api('/api/config');
         pairCount = config.pairCount;
+        tutorialAssignment = tutorialChoice(config, location.search);
         isDataLoaded = true;
         flushTutorialEvents();
         render();
@@ -816,14 +819,17 @@ const flushTutorialEvents = async () => {
 };
 window.addEventListener('online', flushTutorialEvents);
 const recordTutorialEvent = (action) => {
-    pendingTutorialEvents.push({id:state.tutorial.id, action, lesson:state.tutorial.lessonIndex+1, attribution:attribution()});
+    const t=state.tutorial;
+    pendingTutorialEvents.push({id:t.id, action, lesson:t.lessonIndex+1,
+        ...(t.experiment ? {experiment:t.experiment, variant:t.variant} : {}), attribution:attribution()});
     flushTutorialEvents();
 };
 
 const startTutorial = () => {
     if (startingGame || checkingGuess) return;
     stopClock();
-    state.tutorial = {id:crypto.randomUUID(), lessonIndex:0, feedback:null};
+    // Freeze the choice for the whole attempt, including offline/connection retry.
+    state.tutorial = {id:crypto.randomUUID(), lessonIndex:0, feedback:null, ...tutorialAssignment};
     state.isPractice = false;
     state.dailyKey = null;
     recordTutorialEvent('start');
@@ -831,7 +837,7 @@ const startTutorial = () => {
 };
 
 const openTutorialLesson = (lessonIndex) => {
-    const lesson = TUTORIAL_LESSONS[lessonIndex];
+    const lesson = tutorialLessons(state.tutorial.variant)[lessonIndex];
     state.tutorial.lessonIndex = lessonIndex;
     recordTutorialEvent('lesson_start');
     state.tutorial.feedback = null;
@@ -850,7 +856,7 @@ const submitTutorialWord = () => {
     const t = state.tutorial;
     const {y} = state.position;
     const word = state.board[y].join('');
-    const error = checkTutorialWord(t.lessonIndex, y - 1, word);
+    const error = checkTutorialWord(t.lessonIndex, y - 1, word, t.variant);
     if (error) {
         t.feedback = error;
         state.board[y] = emptyRow(state.pair[0].length);
@@ -860,7 +866,7 @@ const submitTutorialWord = () => {
         t.feedback = null;
         killKeyboard();
         recordTutorialEvent('lesson_complete');
-        if (t.lessonIndex === TUTORIAL_LESSONS.length - 1) {
+        if (t.lessonIndex === tutorialLessons(t.variant).length - 1) {
             localStorage.setItem('anagramish-tutorial-completed', 'true');
             recordTutorialEvent('complete');
         }
@@ -873,7 +879,7 @@ const submitTutorialWord = () => {
 };
 
 const exitTutorial = () => {
-    if (state.tutorial && !(state.position===null && state.tutorial.lessonIndex===TUTORIAL_LESSONS.length-1)) recordTutorialEvent('exit');
+    if (state.tutorial && !(state.position===null && state.tutorial.lessonIndex===tutorialLessons(state.tutorial.variant).length-1)) recordTutorialEvent('exit');
     state.tutorial = null;
     state.state = STATES.WELCOME;
     render();
@@ -881,13 +887,14 @@ const exitTutorial = () => {
 
 const renderTutorial = (app) => {
     const t = state.tutorial;
-    const lesson = TUTORIAL_LESSONS[t.lessonIndex];
+    const lessons = tutorialLessons(t.variant);
+    const lesson = lessons[t.lessonIndex];
     const done = state.position === null;
-    const last = t.lessonIndex === TUTORIAL_LESSONS.length - 1;
+    const last = t.lessonIndex === lessons.length - 1;
     app.innerHTML = '';
     const section = set('section.tutorial-screen');
     section.append(
-        set('p.tutorial-progress', {}, `Lesson ${t.lessonIndex+1} of ${TUTORIAL_LESSONS.length} · ${lesson.path[0].length} letters · No timer`),
+        set('p.tutorial-progress', {}, `Lesson ${t.lessonIndex+1} of ${lessons.length} · ${lesson.path[0].length} letters · No timer`),
         set('h2', {}, done && last ? 'Ready for today’s puzzle' : lesson.title),
         set('p', {}, lesson.description),
         renderBoard(state.board)
