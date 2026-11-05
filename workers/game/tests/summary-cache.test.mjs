@@ -30,7 +30,7 @@ function tutorial(action,n,player,at,lesson) {
  return event('tutorial_'+action,n,player,at,{id:`tutorial:${id(player)}:${id(n)}:${action}${lesson?':'+lesson:''}`,mode:'tutorial'});
 }
 function normalized(report) {
- const {cache,tutorial_experiment,...r}=report;
+ const {cache,tutorial_experiment,today_overview,...r}=report;
  // Original SQL leaves ties in these rankings unspecified.
  for(const field of ['sources','locations'])r[field]=[...r[field]].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
  return r;
@@ -39,6 +39,10 @@ async function check(env,days=28,time=now) {
  const cached=await cachedReport(env,'production',days,time);
  assert.ok(!cached.pending);
  assert.deepEqual(normalized(cached),normalized(await rawReport(env,'production',days,time)));
+ const today=cached.daily.find(d=>d.day===cached.today);
+ assert.equal(cached.today_overview.visitors,today?.visitors??0);
+ for(const field of ['starts','completions'])assert.equal(cached.today_overview.daily[field]+cached.today_overview.practice[field],today?.[field]??0);
+ for(const mode of ['daily','practice'])assert.equal(cached.today_overview[mode].sources.reduce((n,s)=>n+s.players,0),cached.today_overview[mode].players);
  return cached;
 }
 test('cached reports match raw queries across windows, late arrivals, sessions, cohorts and lessons',async()=>{
