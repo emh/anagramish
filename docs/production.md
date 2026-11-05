@@ -111,6 +111,9 @@ current scale, compact long-term player/cohort facts before pruning raw history.
 ## Today overview
 
 The dashboard also includes `today_overview` in each report and JSON download.
+It also includes `yesterday_overview`, selectable above the cards. Both use UTC
+dates and display their boundaries in the viewer's local timezone. This keeps
+the previous day's breakdown accessible after UTC midnight without extra queries.
 It derives current UTC-day visitors, players, first-ever/returning players,
 starts, completions, distinct finishers, tutorial counts by variant and game-start diagnostics
 from existing summary facts. Daily and practice games are separate; the headline

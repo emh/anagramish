@@ -14,7 +14,10 @@ const assert=require('node:assert/strict');
    {...common,id:'play:'+id(i)+':'+day,kind:'game_play',source:i<=9?'playlin':'google',medium:i<=9?null:'organic',campaign:'sample',country:i<=9?'CA':'US',region:i<=9?'British Columbia':'California'});
   if(i<=5)events.push({...common,id:'complete:'+id(i),kind:'game_complete',seconds:100+i});
  }
- let legacy=false,empty=false;
+ const yesterdayAt=now-86400000,yesterday=new Date(yesterdayAt).toISOString().slice(0,10);
+ const previous={player:id(99),occurred_at:yesterdayAt,day:yesterday,mode:'daily',hard:0,resumed:0,puzzle_date:yesterday};
+ events.push({...previous,id:'visit:'+id(99),kind:'visit'},{...previous,id:'start:'+id(99),kind:'game_start'},{...previous,id:'play:'+id(99)+':'+yesterday,kind:'game_play',source:'yesterday-source'},{...previous,id:'complete:'+id(99),kind:'game_complete',seconds:30});
+ let legacy=false,empty=false,reportRequests=0;
  const html=(await readFile(resolve(root,'workers/analytics/server/dashboard.html'),'utf8')).replace('<option value="production">','<option value="production" selected>');
  const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
  try{
@@ -23,6 +26,7 @@ const assert=require('node:assert/strict');
   await page.route('**/*',route=>{
    const url=new URL(route.request().url());
    if(url.pathname==='/api/report'){
+    reportRequests++;
     const environment=url.searchParams.get('environment'),d=aggregate(summarize(empty||environment==='preview'?[]:events),{environment,days:Number(url.searchParams.get('days')),now});
     d.cache={updated_at:now,catching_up:false};if(legacy)delete d.today_overview;
     return route.fulfill({json:d});
@@ -34,9 +38,17 @@ const assert=require('node:assert/strict');
   assert.equal(await page.locator('#today-sources tbody tr').count(),1);
   await page.selectOption('#days','7');await page.waitForFunction(()=>document.querySelector('#period-title').textContent.includes('7 days'));
   assert.equal(await page.locator('#today-players').textContent(),'9');
+  const beforeSwitch=reportRequests;
+  await page.selectOption('#overview-day','yesterday');
+  assert.equal(await page.locator('#today-players').textContent(),'1');
+  assert.match(await page.locator('#today-title').textContent(),new RegExp(yesterday));
+  assert.match(await page.locator('#today-sources').textContent(),/yesterday-source/);
+  assert.match(await page.locator('#overview-badge').textContent(),/Completed day/);
+  await page.selectOption('#overview-day','today');
+  assert.equal(await page.locator('#today-players').textContent(),'9');assert.equal(reportRequests,beforeSwitch,'day switching reads the same cached response');
   const download=page.waitForEvent('download');await page.click('#download-json');
   const file=await download,payload=JSON.parse(await readFile(await file.path(),'utf8'));
-  assert.equal(payload.today_overview.daily.players,9);assert.equal(payload.days,7);assert.equal(payload.today_overview.practice.players,3);
+  assert.equal(payload.today_overview.daily.players,9);assert.equal(payload.days,7);assert.equal(payload.yesterday_overview.daily.players,1);assert.equal(payload.today_overview.practice.players,3);
   assert.equal(await page.locator('#today-tutorials tbody tr').count(),3);
   await page.locator('#today-section').screenshot({path:'/tmp/anagramish-today-desktop.png'});
   await page.setViewportSize({width:390,height:844});
@@ -47,7 +59,7 @@ const assert=require('node:assert/strict');
   legacy=true;await page.click('#refresh');await page.locator('#today-pending:not([hidden])').waitFor();
   assert.equal(await page.locator('#today-content').isVisible(),false);
   legacy=false;empty=true;await page.click('#refresh');await page.locator('#today-content:not([hidden])').waitFor();
-  assert.equal(await page.locator('#today-time').textContent(),'—');assert.deepEqual(errors,[]);
+  assert.equal(await page.locator('#today-time').textContent(),'—');assert.match(await page.locator('#today-empty').textContent(),/Select Yesterday/);assert.deepEqual(errors,[]);
   console.log('Today dashboard passes desktop/mobile, period switching, preview isolation, JSON download, empty and older-cache checks.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
