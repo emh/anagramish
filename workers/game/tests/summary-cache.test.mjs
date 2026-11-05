@@ -30,7 +30,7 @@ function tutorial(action,n,player,at,lesson) {
  return event('tutorial_'+action,n,player,at,{id:`tutorial:${id(player)}:${id(n)}:${action}${lesson?':'+lesson:''}`,mode:'tutorial'});
 }
 function normalized(report) {
- const {cache,tutorial_experiment,today_overview,...r}=report;
+ const {cache,tutorial_experiment,today_overview,yesterday_overview,...r}=report;
  // Original SQL leaves ties in these rankings unspecified.
  for(const field of ['sources','locations'])r[field]=[...r[field]].sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
  return r;

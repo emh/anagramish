@@ -129,6 +129,7 @@ export function aggregate(summaries,{environment,days,now=Date.now()}) {
  const byText=(a,b)=>a<b?-1:a>b?1:0;
  return {environment,days,from,today,summary,
   today_overview:todayOverview(summaries,today),
+  yesterday_overview:todayOverview(summaries,addDays(today,-1)),
   tutorial_experiment:tutorialExperimentReport({firstTutorials,firsts,playerPlays,playerCompletions,tutorialCompleted,active,now}),
   daily:[...daily.values()].map(r=>({...r,visitors:r.visitors.size,players:r.players.size,new_players:r.new_players.size})).sort((a,b)=>byText(b.day,a.day)),
   sources:[...sources.values()].map(r=>({...r,players:r.players.size})).sort((a,b)=>b.players-a.players||byText(key(a.source,a.medium,a.campaign),key(b.source,b.medium,b.campaign))).slice(0,30),

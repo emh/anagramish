@@ -56,6 +56,7 @@ test('late and tied plays are deterministic, history changes new/returning class
  for(const mode of ['daily','practice'])for(const k of ['players','new_players','returning_players','starts','completions','finishers'])assert.equal(next[mode][k],0);
  assert.equal(next.daily.avg_seconds,null);assert.equal(next.last_event,null);assert.deepEqual(next.daily.sources,[]);assert.deepEqual(next.daily.locations,[]);
  assert.deepEqual(report([],7,Date.parse('2026-11-05T00:00:00Z')).today_overview,next);
+ assert.deepEqual(report(events,7,Date.parse('2026-11-05T00:00:00Z')).yesterday_overview,report(events).today_overview,'the completed UTC day remains available after midnight');
 });
 
 
