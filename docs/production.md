@@ -108,6 +108,24 @@ The cache removes D1 scans, but cold report aggregation still grows with retaine
 summary history in Worker memory. If traffic grows substantially beyond the
 current scale, compact long-term player/cohort facts before pruning raw history.
 
+## Today overview
+
+The dashboard also includes `today_overview` in each report and JSON download.
+It derives current UTC-day visitors, players, first-ever/returning players,
+starts, completions, distinct finishers, tutorial counts by variant and game-start diagnostics
+from existing summary facts. Daily and practice games are separate; the headline
+metrics, sources and geography use daily puzzles only. New/returning status is
+calculated independently from each game type’s history. Each player's first game activity today determines
+their one source/campaign and country/region bucket within each game type, so each breakdown sums to
+the player total. These are player attribution counts, not visitor referrers;
+no referring page paths or raw identifiers are returned. Tutorial completions
+match the exact attempt’s start across all history to identify its variant.
+Untagged attempts or completions with a missing start are shown separately. First-ever status uses
+all cached history, even outside the selected period. No migration, summary
+rebuild or additional raw-event query is required. Existing cached responses
+gain the section within the normal five-minute expiry; UTC midnight invalidates
+the prior day's response.
+
 ## Tutorial experiment
 
 The game Worker enables `tutorial-short-v1` through `TUTORIAL_EXPERIMENT` in

@@ -16,9 +16,11 @@ test('D1 warm report reads only cache rows and keeps reports owner-only',async()
   const env={DB:measured};
   const initial=await cachedReport(env,'production',7,now);
   assert.equal(initial.summary.visitors,100);
+  assert.equal(initial.today_overview.visitors,100);
   rowsRead=0;
   const warm=await cachedReport(env,'production',7,now+1000);
   assert.equal(warm.summary.visitors,100);
+  assert.deepEqual(warm.today_overview,initial.today_overview);
   assert.ok(rowsRead<=4,`warm cache batch read ${rowsRead} rows`);
   const denied=await app.analytics.dispatchFetch('https://analytics.test/api/report?environment=production&days=7');
   assert.equal(denied.status,403);
