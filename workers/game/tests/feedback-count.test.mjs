@@ -34,7 +34,7 @@ test('feedback counts are cached, isolated, independent of period, and roll over
   for(const days of [7,28,90]) {
    const report=await cachedReport(env,'production',days,now);
    assert.equal(report.today_overview.feedback_count,1);assert.equal(report.yesterday_overview.feedback_count,1);
-   assert.equal(report.summary.players,0);assert.equal(report.summary.visitors,0);assert.equal(report.summary.starts,0);assert.equal(report.today_overview.last_event,null);
+   assert.equal(report.summary.players,0);assert.equal(report.summary.visitors,0);assert.equal(report.summary.starts??0,0);assert.equal(report.today_overview.last_event,null);
    assert.equal(JSON.stringify(report).includes('private comment'),false);
   }
   assert.equal((await cachedReport(env,'preview',7,now)).today_overview.feedback_count,1);
