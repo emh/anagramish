@@ -29,3 +29,4 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/analytics-browser" --no-package-lock --no-save playwright@1.56.1
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/analytics-browser/node_modules/playwright" CHROMIUM_PATH="$(command -v google-chrome)" node workers/game/tests/today-dashboard-browser.cjs
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/analytics-browser/node_modules/playwright" CHROMIUM_PATH="$(command -v google-chrome)" node workers/game/tests/player-trend-browser.cjs

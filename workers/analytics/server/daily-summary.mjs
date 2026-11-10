@@ -1,5 +1,6 @@
 import {tutorialExperimentReport} from './tutorial-experiment.mjs';
 import {todayOverview} from './today-overview.mjs';
+import {playerTrend} from './player-trend.mjs';
 // Cache additive totals and the minimum identity/timing facts needed for exact
 // distinct counts, cross-day sessions, acquisition and tutorial cohorts.
 // Private identifiers stay in D1; only aggregate numbers leave /api/report.
@@ -138,6 +139,7 @@ export function aggregate(summaries,{environment,days,now=Date.now()}) {
   completed_days:completedDays,player_days:playerDays,average_daily_players:completedDays?playerDays/completedDays:null};
  return {environment,days,from,today,summary,
   coverage,
+  player_trend:playerTrend(summaries,{from,today,firstRecordedDay}),
   today_overview:todayOverview(summaries,today),
   yesterday_overview:todayOverview(summaries,addDays(today,-1)),
   tutorial_experiment:tutorialExperimentReport({firstTutorials,firsts,playerPlays,playerCompletions,tutorialCompleted,active,now}),

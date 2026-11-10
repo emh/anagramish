@@ -228,3 +228,23 @@ like other cached metrics; UTC rollover reassigns Today/Yesterday automatically.
 Comments remain private and load only on request. This counter assumes feedback
 is immutable, as the current API enforces; any future editing/deletion feature
 must also maintain these counters.
+
+## Daily player trend
+
+`player_trend` contains a seven-day simple moving average of daily unique players,
+using the same daily-plus-practice scope as the existing daily chart. Each point
+averages its labeled UTC day and the preceding six days; all seven must be
+completed tracked days. Today, tutorial activity and dates before first recorded
+tracking are excluded. Quiet days within tracking count as zero. The first
+tracked date remains the existing first-activity proxy, so initial collection
+may have started partway through that day.
+
+The calculation uses retained summary facts, including the six days before the
+selected period where needed. A given date's value therefore stays the same
+across 7/28/90-day filters. The trend does not divide period-wide unique players
+by seven: a returning browser contributes once on each day it plays. Until seven
+tracked days have completed, the dashboard shows an explanatory empty state.
+
+The line chart includes a zero-based scale, latest weekly average, exact date
+range and hover/tap/keyboard details. It is built into the existing cached report
+and JSON download, without new queries, migrations, dependencies or comment reads.
