@@ -4,6 +4,9 @@ import { compareWords, emptyBoard, emptyRow } from './utils.js';
 import { tutorialLessons, checkTutorialWord } from './tutorial.mjs';
 import { tutorialChoice } from './tutorial-experiment.mjs';
 import { getAttribution } from './acquisition.mjs';
+import { placeLetter, eraseLetter, rowComplete } from './puzzle-input.mjs';
+import { animate, press, fly, clearFlights, rowFeedback } from './tile-motion.mjs';
+import { setupTileDrag } from './tile-drag.mjs';
 
 // The initial HTML is also the welcome screen, so rules are readable without JS.
 const welcomeTemplate = document.createElement('template');
@@ -20,9 +23,6 @@ const STATES = {
 const GAME_VERSION = 2;
 const FIRST_PUZZLE_DATE = '2026-03-02'; // v2 launch
 const HARD_MODE_STORAGE_KEY = 'hard-mode';
-const BOARD_ROW_SIZE = 50;
-const BOARD_PADDING_TOP = 20;
-const CELL_SIZE = 42;
 const TRASH_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
 
 const loadHardModeSetting = () => localStorage.getItem(HARD_MODE_STORAGE_KEY) === 'true';
@@ -415,30 +415,53 @@ const colorKeyboard = () => {
     });
 };
 
-const handleKey = async (key) => {
-    const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
+let tileDrag;
+const canInteract = () => [STATES.PLAYING, STATES.TUTORIAL].includes(state.state) && state.position !== null && !checkingGuess && !startingGame;
+const activeBoard = () => document.querySelector('.board.interactive');
+const cellAt = (y, x) => activeBoard()?.querySelector(`[data-y="${y}"][data-x="${x}"]`);
+const keyElement = key => [...document.querySelectorAll('.key')].find(element => element.dataset.key === key);
 
-    if (![STATES.PLAYING, STATES.TUTORIAL].includes(state.state) || state.position === null || checkingGuess || startingGame) {
-        return;
-    }
+const updateInputView = () => {
+    const board = activeBoard();
+    if (board) updateBoardCells(board, state.board, state.pair, state.position, true);
+    document.querySelector('#enter')?.classList.toggle('ready', rowComplete(state.board, state.position));
+};
+
+const inputLetter = (letter, source, x = state.position?.x, from = null, origin) => {
+    if (!canInteract() || (!state.tutorial && state.hardMode && !isHardModeAllowedLetter(letter))) return;
+    const {y} = state.position;
+    const displaced = from !== null ? state.board[y][x] : null;
+    const displacedOrigin = from !== null ? cellAt(y, x).getBoundingClientRect() : null;
+    if (!placeLetter(state.board, state.position, letter, x, from)) return;
+    updateInputView();
+    fly(source, cellAt(y, x), letter, origin);
+    if (displaced !== null) fly(cellAt(y, x), cellAt(y, from), displaced, displacedOrigin);
+};
+
+const handleKey = async (key, source) => {
+    const normalizedKey = key.length === 1 ? key.toLowerCase() : key;
+    if (!canInteract()) return;
+    tileDrag?.cancel();
+    const button = keyElement(normalizedKey);
+    if (button && !button.disabled) press(button);
 
     if (normalizedKey === 'Backspace') {
-        if (state.position.x > 0) {
-            state.board[state.position.y][state.position.x - 1] = null;
-            state.position.x -= 1;
-        }
-    } else if (isLetter(normalizedKey) && state.position.x < state.board[0].length) {
-        if (!state.tutorial && state.hardMode && !isHardModeAllowedLetter(normalizedKey)) {
-            return;
-        }
-
-        const { x, y } = state.position;
-
-        state.board[y][x] = normalizedKey;
-        state.position.x += 1;
-    } else if (normalizedKey === 'Enter' && state.position.x === state.board[0].length) {
+        clearFlights();
+        const {y} = state.position;
+        const x = eraseLetter(state.board, state.position);
+        updateInputView();
+        animate(cellAt(y, x), [{transform: 'scale(.92)'}, {transform: 'scale(1)'}], {duration: 160});
+        return;
+    } else if (normalizedKey === 'ArrowLeft' || normalizedKey === 'ArrowRight') {
+        state.position.x = Math.max(0, Math.min(state.board[0].length - 1, state.position.x + (normalizedKey === 'ArrowLeft' ? -1 : 1)));
+        updateInputView();
+        return;
+    } else if (isLetter(normalizedKey)) {
+        inputLetter(normalizedKey, source || button);
+        return;
+    } else if (normalizedKey === 'Enter' && rowComplete(state.board, state.position)) {
         const { y } = state.position;
-
+        clearFlights();
         if (state.tutorial) {
             submitTutorialWord();
             return;
@@ -449,6 +472,7 @@ const handleKey = async (key) => {
             verdict = await api('/api/guess',{id:loadGame()?.apiId,words:state.board.slice(1,y+1).map(row=>row.join(''))});
         } catch(error) {
             renderMessage(error.message || 'Unable to check word. Press Enter to retry.');
+            rowFeedback(activeBoard(), y, true);
             return;
         } finally { checkingGuess = false; }
         if (!verdict.valid) {
@@ -467,19 +491,22 @@ const handleKey = async (key) => {
         } else {
             state.position.x = 0;
             state.position.y += 1;
-
             if (!state.hardMode && state.position.y > state.board.length - 2) {
                 state.board.splice(state.board.length - 1, 0, emptyRow());
             }
         }
-
         updateSavedGame();
+        render();
+        rowFeedback(document.querySelector('main .board'), y, state.position?.y === y);
+        return;
     }
-
-    if (state.tutorial && normalizedKey === 'Enter' && state.position.x < state.board[0].length) {
-        state.tutorial.feedback = `Fill all ${state.board[0].length} letters, then press Enter.`;
+    if (normalizedKey === 'Enter') {
+        if (state.tutorial) {
+            state.tutorial.feedback = `Fill all ${state.board[0].length} letters, then press Enter.`;
+            render();
+        }
+        rowFeedback(activeBoard(), state.position.y, true);
     }
-    render();
 };
 
 const deleteLastCompletedWord = () => {
@@ -500,34 +527,32 @@ const deleteLastCompletedWord = () => {
 };
 
 const setupHandlers = () => {
-    get('footer').addEventListener('click', (e) => {
-        if (e.target.dataset.key) handleKey(e.target.dataset.key);
+    tileDrag = setupTileDrag(get('main'), {
+        canInteract, position: () => state.position,
+        onDrop: ({letter, source, x, from, origin}) => inputLetter(letter, source, x, from, origin)
     });
-
-    get('main').addEventListener('click', (e) => {
-        if (!(e.target instanceof Element)) {
-            return;
-        }
-
-        const cell = e.target.closest('.cell');
-
-        if (!cell) {
-            return;
-        }
-
-        const letter = cell.textContent.trim().toLowerCase();
-
-        if (letter.length === 1 && letter >= 'a' && letter <= 'z') {
-            handleKey(letter);
-        }
+    get('footer').addEventListener('click', event => {
+        const button = event.target.closest('.key');
+        if (button && !button.disabled) handleKey(button.dataset.key, button);
     });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey || e.metaKey || e.altKey) return;
-        if (e.target instanceof Element && e.target.closest('input,select,textarea,[contenteditable]')) return;
-        if (e.key === 'Enter' && e.target instanceof HTMLButtonElement && !e.target.classList.contains('key')) return;
-        if ([STATES.PLAYING, STATES.TUTORIAL].includes(state.state) && (e.key === 'Enter' || e.key === 'Backspace')) e.preventDefault();
-        handleKey(e.key);
+    get('main').addEventListener('click', event => {
+        const cell = event.target.closest('.board.interactive .cell');
+        if (!cell || cell.disabled || !canInteract() || tileDrag.suppressClick()) return;
+        press(cell);
+        if (Number(cell.dataset.y) === state.position.y) {
+            state.position.x = Number(cell.dataset.x);
+            updateInputView();
+        } else inputLetter(cell.textContent, cell);
+    });
+    document.addEventListener('keydown', event => {
+        if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+        if (event.target instanceof Element && event.target.closest('input,select,textarea,[contenteditable]')) return;
+        if (event.key === 'Enter' && event.target instanceof HTMLButtonElement && !event.target.matches('.key, .cell')) return;
+        const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
+        if (canInteract() && (['Enter', 'Backspace', 'ArrowLeft', 'ArrowRight'].includes(key) || isLetter(key))) {
+            event.preventDefault();
+            handleKey(key);
+        }
     });
 };
 
@@ -545,7 +570,7 @@ const renderKeyboard = () => {
 
     colorKeyboard();
 
-    get('#back').style.display = 'inline-block';
+    get('#back').style.display = 'inline-grid';
 };
 
 const killKeyboard = () => {
@@ -563,7 +588,6 @@ const renderWelcome = (app) => {
     get('#play').disabled = !isDataLoaded;
     get('#practice').disabled = !isDataLoaded;
     get('#hard-mode').checked = state.hardMode;
-    get('#tutorial').textContent = localStorage.getItem('anagramish-tutorial-completed') === 'true' ? 'Replay tutorial' : 'Learn to play';
     get('#tutorial').addEventListener('click', startTutorial);
 
     get('#play').addEventListener('click', () => {
@@ -876,6 +900,7 @@ const submitTutorialWord = () => {
         t.showHint = false;
     }
     render();
+    rowFeedback(document.querySelector('main .board'), y, !!error);
 };
 
 const exitTutorial = () => {
@@ -932,21 +957,49 @@ const renderTutorial = (app) => {
     app.append(section);
 };
 
-const getPositionClass = (position, y, x) => position?.x === x && position?.y === y ? 'current' : '';
 const getCharClass = (pair, char) => char === null ? 'normal' : pair[0].includes(char) ? 'start' : pair[1].includes(char) ? 'end' : 'misc';
 
-const renderCell = (char, y, x, pair, position) => set(`div.${[getPositionClass(position, y, x), getCharClass(pair, char), 'cell'].join('.')}`, {}, char);
-const renderRow = (chars, y, pair, position) => chars.map((c, x) => renderCell(c, y, x, pair, position));
-const renderBoard = (board, pair = state.pair, position = state.position) => set('div.board', { style: `--word-length: ${board[0].length}` }, ...board.flatMap((row, y) => renderRow(row, y, pair, position)));
+const updateBoardCells = (element, board, pair, position, interactive) => {
+    const cells = element.querySelectorAll('.cell');
+    board.forEach((row, y) => row.forEach((char, x) => {
+        const cell = cells[y * row.length + x];
+        cell.className = `cell ${getCharClass(pair, char)}`;
+        cell.classList.toggle('current', position?.y === y && position?.x === x);
+        cell.classList.toggle('active-row', position?.y === y);
+        cell.querySelector('.glyph').textContent = char ?? '';
+        if (interactive) {
+            cell.disabled = position?.y !== y && char === null;
+            cell.classList.toggle('source', char !== null);
+            cell.setAttribute('aria-current', position?.y === y && position?.x === x ? 'true' : 'false');
+            cell.setAttribute('aria-label', `${y === 0 ? 'Start word' : y === board.length - 1 ? 'Goal word' : `Row ${y}`}, square ${x + 1}, ${char?.toUpperCase() ?? 'empty'}`);
+        }
+    }));
+};
+
+const renderBoard = (board, pair = state.pair, position = state.position) => {
+    const interactive = board === state.board && position !== null && [STATES.PLAYING, STATES.TUTORIAL].includes(state.state);
+    const element = set(`div.board${interactive ? '.interactive' : ''}`, {style: `--word-length: ${board[0].length}`});
+    board.forEach((row, y) => row.forEach((char, x) => {
+        const cell = set(`${interactive ? 'button' : 'div'}.cell`, interactive ? {type: 'button'} : {}, set('span.glyph', {}, char));
+        cell.dataset.x = x;
+        cell.dataset.y = y;
+        element.append(cell);
+    }));
+    updateBoardCells(element, board, pair, position, interactive);
+    return element;
+};
 
 const renderHeaderButtons = () => {
-    get('#back').style.display = state.state === STATES.WELCOME ? 'none' : 'inline-block';
-    get('#reset').style.display = state.isPractice && state.state === STATES.PLAYING ? 'inline-block' : 'none';
+    get('#back').style.display = state.state === STATES.WELCOME ? 'none' : 'inline-grid';
+    get('#reset').style.display = state.isPractice && state.state === STATES.PLAYING ? 'inline-grid' : 'none';
 };
 
 const render = () => {
+    tileDrag?.cancel();
+    clearFlights();
     const app = get('main');
     renderHeaderButtons();
+    document.querySelector('#enter')?.classList.toggle('ready', rowComplete(state.board, state.position));
 
     if (state.state === STATES.WELCOME) {
         renderWelcome(app);
@@ -971,13 +1024,12 @@ const render = () => {
     const boardContainer = set('div.board-container', {}, boardEl);
 
     if (state.hardMode && state.position !== null && state.position.y > 1) {
-        const deleteButtonTop = BOARD_PADDING_TOP + ((state.position.y - 1) * BOARD_ROW_SIZE) + (CELL_SIZE / 2);
         const deleteWordButton = set(
             'button.delete-word',
-            { type: 'button', style: `top: ${deleteButtonTop}px`, ariaLabel: 'Delete previous word', title: 'Delete previous word', innerHTML: TRASH_ICON_SVG }
+            { type: 'button', style: `grid-row: ${state.position.y} / ${state.position.y + 1}`, ariaLabel: 'Delete previous word', title: 'Delete previous word', innerHTML: TRASH_ICON_SVG }
         );
         deleteWordButton.addEventListener('click', deleteLastCompletedWord);
-        boardContainer.appendChild(deleteWordButton);
+        boardEl.appendChild(deleteWordButton);
     }
 
     app.appendChild(boardContainer);

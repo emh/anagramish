@@ -25,7 +25,7 @@ const root=resolve(__dirname,'../../..');
    await page.waitForFunction(()=>!document.querySelector('#play').disabled);
    await page.evaluate(()=>{localStorage.setItem('hard-mode','true');localStorage.setItem('practice',JSON.stringify({version:2,pair:['caulk','horse'],state:'playing',numSeconds:12,words:['lacks'],mistakes:0}));});
    const saved=await page.evaluate(()=>localStorage.getItem('practice'));
-   await page.getByRole('button',{name:'Learn to play',exact:true}).click();
+   await page.getByRole('button',{name:'Tutorial',exact:true}).click();
    assert.equal(await page.locator('.board .cell').count(),variant==='short'?9:12);
    await page.keyboard.type('act');await page.keyboard.press('Enter');await page.getByText(/Moving the same letters/).waitFor();
    const lessons=variant==='short'?[['tar']]:[['cot','dot'],['tar'],['cord','card','ward']];

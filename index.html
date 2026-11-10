@@ -59,7 +59,7 @@
 <body>
     <div id="app">
         <header>
-            <h1>anagramish</h1>
+            <h1 class="brand">anagram<span>ish</span></h1>
             <button id="back" aria-label="Home">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house" aria-hidden="true">
                     <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
@@ -78,13 +78,12 @@
         <section>
             <p>A daily five-letter anagram word ladder.</p>
             
-            <div class="buttons">
+            <div class="buttons welcome-actions">
                 <button id="play" disabled>Play</button>
+                <button id="tutorial" class="tutorial-button">Tutorial</button>
                 <button id="practice" disabled>Practice</button>
                 <button id="history">History</button>
             </div>
-
-            <button id="tutorial" class="tutorial-button">Learn to play</button>
 
             <div class="hard-mode-option">
                 <label for="hard-mode">
@@ -124,7 +123,7 @@
                 <dt>Mistakes:</dt> <dd id="mistakes"></dd>
             </dl>
 
-            <div class="buttons">
+            <div class="buttons finish-actions">
                 <button id="share">Share</button>
                 <button id="copy">Copy</button>
                 <button id="practice">Practice</button>
@@ -186,7 +185,7 @@
                 <span class="spacer"></span>
             </div>
             <div class="row">
-                <button class="key key-wide" id="enter" data-key="Enter">⏎</button>
+                <button class="key key-wide" id="enter" aria-label="Submit word" data-key="Enter">Enter</button>
                 <button class="key" data-key="z">Z</button>
                 <button class="key" data-key="x">X</button>
                 <button class="key" data-key="c">C</button>
@@ -194,7 +193,7 @@
                 <button class="key" data-key="b">B</button>
                 <button class="key" data-key="n">N</button>
                 <button class="key" data-key="m">M</button>
-                <button class="key key-wide" id="backspace" data-key="Backspace">⌫</button>
+                <button class="key key-wide" id="backspace" aria-label="Delete letter" data-key="Backspace">⌫</button>
             </div>
         </div>
     </template>

@@ -17,6 +17,8 @@ Install dependencies with `npm ci` in both `workers/game` and `workers/analytics
 
 The browser walkthrough is `workers/game/tests/browser.cjs`. Set `PLAYWRIGHT_MODULE` if Playwright is not normally resolvable and `CHROMIUM_PATH` to the installed browser. It covers saved games, cleared cookies, failed requests, completion sync, past puzzles, mobile layout, and analytics.
 
+`node workers/game/tests/interactions-browser.mjs` checks animated typing, tile selection, dragging and swapping, cancellation, hard-mode undo, and reduced motion. It uses the same Playwright settings; set `BASE_URL` to test a local server on a port other than 4173.
+
 After schema edits, run `npm run db:generate` in the affected Worker and inspect the SQL. Never rewrite an applied migration. Builds emit ignored `dist/` output. Sites deployment archives contain `.openai/hosting.json`, `dist/`, and `drizzle/`, built from the pushed source.
 
 ## Production deployment
@@ -43,7 +45,7 @@ Ladders are server-validated, but times and mistakes are browser-reported. Do no
 
 ## Tutorial milestone
 
-“Learn to play” opens three untimed, guided lessons: two three-letter puzzles for substitutions and rearrangement, followed by a four-letter ladder with optional hints. It reuses the game's keyboard and variable-size board, works without API connectivity, and supports skip/replay and a handoff to today's puzzle. Tutorial completion is a device-local onboarding preference; daily/practice history and hard-mode settings are preserved.
+“Tutorial” opens three untimed, guided lessons: two three-letter puzzles for substitutions and rearrangement, followed by a four-letter ladder with optional hints. It reuses the game's keyboard and variable-size board, works without API connectivity, and supports skip/replay and a handoff to today's puzzle. Tutorial completion is a device-local onboarding preference; daily/practice history and hard-mode settings are preserved.
 
 The `/api/tutorial` endpoint records separate, idempotent start/completion events. The analytics dashboard shows them separately from daily players and game results. `tutorial.mjs` contains the small authored lesson vocabulary, not the full game dictionary. Additional checks live in `workers/game/tests/tutorial.test.mjs` and `workers/game/tests/tutorial-browser.cjs`.
 

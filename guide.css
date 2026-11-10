@@ -16,21 +16,12 @@ body.guide-page {
     margin: 0 auto;
     padding: 24px;
 }
-.guide-brand {
-    font-size: 22px;
-    letter-spacing: 0.16em;
-    text-decoration: none;
-}
+.guide-brand { text-decoration: none; }
 .guide-page a { color: var(--fg); text-underline-offset: 3px; }
-.guide-play {
+.guide-page .guide-play {
     display: inline-block;
-    padding: 9px 16px;
-    border: 1px solid var(--fg);
-    border-radius: 8px;
-    background: var(--start);
-    color: #111 !important;
+    color: var(--button-ink);
     text-decoration: none;
-    font-weight: 600;
 }
 .guide-main { display: block; overflow: visible; max-width: 800px; margin: 0 auto; padding: 24px; }
 .guide-main h1 { font-size: clamp(28px, 5vw, 38px); line-height: 1.2; letter-spacing: normal; margin: 12px 0 20px; }
