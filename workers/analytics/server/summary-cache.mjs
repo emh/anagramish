@@ -53,12 +53,19 @@ export async function cachedReport(env,environment,days,now=Date.now()) {
  if(!state.refreshed_at)return {pending:true,message:'Preparing daily summaries. Historical events are being processed in small batches.'};
  if(cached&&cached.cursor===state.cursor&&cached.expires_at>now)return {...JSON.parse(cached.payload),cache:freshness(state,env)};
  // A batch gives the checkpoint and its summaries one consistent DB snapshot.
- const [snapshot,parts]=await env.DB.batch([
+ const today=new Date(now).toISOString().slice(0,10),yesterday=new Date(now-86400000).toISOString().slice(0,10);
+ const [snapshot,parts,feedback]=await env.DB.batch([
   env.DB.prepare('SELECT * FROM analytics_summary_state WHERE environment=?').bind(environment),
-  env.DB.prepare('SELECT payload FROM analytics_daily_summaries WHERE environment=? ORDER BY part').bind(environment)
+  env.DB.prepare('SELECT payload FROM analytics_daily_summaries WHERE environment=? ORDER BY part').bind(environment),
+  env.DB.prepare('SELECT day,submissions FROM feedback_daily_counts WHERE environment=? AND day IN (?,?)').bind(environment,today,yesterday)
  ]);
  const current=snapshot.results[0];
  const report=aggregate(parts.results.flatMap(r=>JSON.parse(r.payload)),{environment,days,now});
+ // Read only two pre-counted rows on a cache miss, never feedback/comment rows.
+ // Duplicate delivery does not fire the INSERT trigger; timestamps use UTC.
+ const feedbackCounts=new Map(feedback.results.map(r=>[r.day,r.submissions]));
+ report.today_overview.feedback_count=feedbackCounts.get(today)??0;
+ report.yesterday_overview.feedback_count=feedbackCounts.get(yesterday)??0;
  // Age-based cohorts can mature without new events. Never carry a report across
  // UTC midnight, and expire within five minutes even when the cursor is unchanged.
  const expires=Math.min(now+300000,(Math.floor(now/86400000)+1)*86400000);

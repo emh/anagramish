@@ -216,3 +216,15 @@ shows text safely, and can download loaded submissions as JSON. The standard
 stats export and automatic report refresh do not include or read feedback. Daily
 and practice context remain labeled separately; no migrations rewrite gameplay
 history. Production deploy applies analytics first, then the API, then Pages.
+
+
+Today/Yesterday include `feedback_count` in the cached report and JSON export.
+The count covers all submissions (daily, practice and general), by submission UTC
+date, not delivery date. `feedback_daily_counts` is updated by an INSERT trigger;
+duplicate delivery cannot increment it. The migration seeds existing feedback
+once. A cold report reads at most two counter rows, and warm reports retain their
+existing read budget with no feedback query. Counts can lag by up to five minutes,
+like other cached metrics; UTC rollover reassigns Today/Yesterday automatically.
+Comments remain private and load only on request. This counter assumes feedback
+is immutable, as the current API enforces; any future editing/deletion feature
+must also maintain these counters.
