@@ -22,6 +22,13 @@
       "when": 1793646161808,
       "tag": "0002_tutorial_experiment",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794330057721,
+      "tag": "0003_yellow_moonstone",
+      "breakpoints": true
     }
   ]
 }

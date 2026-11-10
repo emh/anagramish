@@ -1,3 +1,4 @@
+import { setupFeedback } from './feedback.mjs';
 import { api } from './api-client.mjs';
 import { get, set } from './html.mjs';
 import { compareWords, emptyBoard, emptyRow } from './utils.js';
@@ -343,6 +344,7 @@ const updateSavedGame = () => {
 };
 
 const startClock = () => {
+    if (!document.getElementById('feedback-panel').hidden) return;
     const fn = () => {
         state.numSeconds += 1;
 
@@ -416,7 +418,7 @@ const colorKeyboard = () => {
 };
 
 let tileDrag;
-const canInteract = () => [STATES.PLAYING, STATES.TUTORIAL].includes(state.state) && state.position !== null && !checkingGuess && !startingGame;
+const canInteract = () => !feedback.isOpen() && [STATES.PLAYING, STATES.TUTORIAL].includes(state.state) && state.position !== null && !checkingGuess && !startingGame;
 const activeBoard = () => document.querySelector('.board.interactive');
 const cellAt = (y, x) => activeBoard()?.querySelector(`[data-y="${y}"][data-x="${x}"]`);
 const keyElement = key => [...document.querySelectorAll('.key')].find(element => element.dataset.key === key);
@@ -645,6 +647,9 @@ const renderFinish = (app) => {
     get('#words').textContent = state.board.length - 2;
     get('#puzzle-number').textContent = `#${state.puzzleNumber}`;
     syncResult(loadGame(),state.isPractice,state.dailyKey);
+    get('#completion-feedback-heading').textContent=state.isPractice?'How was this practice puzzle?':state.dailyKey===key()?'How was today’s puzzle?':'How was this puzzle?';
+    document.querySelectorAll('.completion-feedback [data-rating]').forEach(button=>button.onclick=()=>feedback.open('completion',button.dataset.rating));
+    get('#completion-comment').onclick=()=>feedback.open('completion');
 
     const boardEl = renderBoard(state.board);
 
@@ -854,6 +859,7 @@ const startTutorial = () => {
     stopClock();
     // Freeze the choice for the whole attempt, including offline/connection retry.
     state.tutorial = {id:crypto.randomUUID(), lessonIndex:0, feedback:null, ...tutorialAssignment};
+    try {localStorage.setItem('anagramish-feedback-tutorial',JSON.stringify({variant:state.tutorial.variant,experiment:state.tutorial.experiment}));}catch{}
     state.isPractice = false;
     state.dailyKey = null;
     recordTutorialEvent('start');
@@ -1056,6 +1062,12 @@ get('#reset').addEventListener('click', () => {
     startGame(true);
 });
 
+const feedback=setupFeedback({
+    context:()=>({screen:state.state,sessionId:[STATES.PLAYING,STATES.FINISHED].includes(state.state)?loadGame()?.apiId??null:null,
+        tutorial:state.tutorial?{variant:state.tutorial.variant,experiment:state.tutorial.experiment}:readStorageJSON('anagramish-feedback-tutorial')}),
+    onOpen:()=>{tileDrag?.cancel();stopClock();},
+    onClose:()=>{if(state.state===STATES.PLAYING&&!state.timer)startClock();return activeBoard();}
+});
 setupHandlers();
 window.addEventListener('online', () => isDataLoaded ? flushTutorialEvents() : loadWordData());
 

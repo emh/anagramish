@@ -1,3 +1,4 @@
+import {saveFeedback} from './feedback.mjs';
 import {signPlayer,verifyPlayer} from './player-token.mjs';
 import {pairCount,puzzle,practicePair,checkLadder} from './game.mjs';
 import {TUTORIAL_EXPERIMENT,tutorialVariant} from '../../../tutorial-experiment.mjs';
@@ -30,9 +31,12 @@ export async function flush(env) {
  const rows=(await env.DB.prepare('SELECT id,payload FROM outbox ORDER BY created_at LIMIT 40').all()).results;
  if(!rows.length)return;
  const send=env.ANALYTICS?env.ANALYTICS.fetch.bind(env.ANALYTICS):fetch;
- const response=await send(new URL('/ingest',env.ANALYTICS_URL||'https://analytics.internal'),{method:'POST',headers:{'Content-Type':'application/json',...(env.ANALYTICS?{}:{'OAI-Sites-Authorization':`Bearer ${env.ANALYTICS_SERVICE_TOKEN}`}),'Authorization':`Bearer ${env.ANALYTICS_INGEST_TOKEN}`},body:JSON.stringify({events:rows.map(r=>JSON.parse(r.payload))}),signal:AbortSignal.timeout(8000)});
+ for(const feedback of [false,true]) {
+ const batch=rows.filter(r=>(JSON.parse(r.payload).kind==='feedback')===feedback);if(!batch.length)continue;
+ const response=await send(new URL(feedback?'/ingest-feedback':'/ingest',env.ANALYTICS_URL||'https://analytics.internal'),{method:'POST',headers:{'Content-Type':'application/json',...(env.ANALYTICS?{}:{'OAI-Sites-Authorization':`Bearer ${env.ANALYTICS_SERVICE_TOKEN}`}),'Authorization':`Bearer ${env.ANALYTICS_INGEST_TOKEN}`},body:JSON.stringify({[feedback?'feedback':'events']:batch.map(r=>JSON.parse(r.payload))}),signal:AbortSignal.timeout(8000)});
  if(!response.ok)throw new Error(`Analytics intake returned ${response.status}`);
- await env.DB.batch(rows.map(r=>env.DB.prepare('DELETE FROM outbox WHERE id=?').bind(r.id)));
+ await env.DB.batch(batch.map(r=>env.DB.prepare('DELETE FROM outbox WHERE id=?').bind(r.id)));
+ }
 }
 async function api(request,env,ctx) {
  const url=new URL(request.url), production=env.TRAFFIC_ENV==='production';
@@ -51,6 +55,12 @@ async function api(request,env,ctx) {
  if(request.method==='GET'&&url.pathname==='/api/puzzle')return reply(puzzle(url.searchParams.get('date')));
  if(request.method!=='POST')return reply({error:'Not found.'},404);
  const input=await body(request);
+ if(!input||typeof input!=='object'||Array.isArray(input))return reply({error:'Invalid request.'},400);
+ if(url.pathname==='/api/feedback') {
+  const result=await saveFeedback(env,player,input);
+  if(result.status===200)ctx.waitUntil(flush(env).catch(error=>console.error('Feedback delivery deferred',error.message)));
+  return reply(result.data,result.status);
+ }
  if(url.pathname==='/api/visit') {
   if(!uuid(input.id))return reply({error:'Invalid visit.'},400);
   await enqueue(env.DB,event(env,player,'visit',`visit:${player}:${new Date().toISOString().slice(0,10)}:${input.id}`,attribution(request,input.attribution))).run();

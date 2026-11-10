@@ -517,3 +517,25 @@ section.tutorial-screen { width: 100%; padding: 16px 20px 8px; gap: 10px; }
     #message.show { animation: none; opacity: 1; transform: translateX(-50%); }
     #message.show::before { animation: none; }
 }
+
+/* Feedback is opened explicitly and leaves the saved board in place. */
+button#feedback-button { position: absolute; right: 10px; top: 12px; padding: 8px; font-size: 12px; min-height: 40px; box-shadow: none; background: transparent; color: var(--fg); }
+#feedback-panel { width: min(100%, 540px); margin: 0 auto; padding: 20px; overflow: auto; flex: 1; user-select: text; }
+#feedback-panel[hidden], body.feedback-open main, body.feedback-open footer { display: none; }
+.feedback-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.feedback-heading h2 { margin: 0; font-size: 22px; letter-spacing: normal; font-weight: 650; }
+#feedback-panel p { line-height: 1.5; }
+#feedback-rating { margin: 18px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+#feedback-rating label { display: inline-flex; align-items: center; gap: 4px; padding: 8px 4px; }
+#feedback-panel span, .feedback-note { font-size: 13px; opacity: .8; }
+#feedback-comment { display: block; width: 100%; margin-top: 8px; padding: 12px; font: inherit; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--fg); resize: vertical; }
+#feedback-status { min-height: 24px; }
+.completion-feedback { margin: 28px 0 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+.completion-feedback h2 { letter-spacing: normal; font-size: 18px; margin: 0 0 14px; }
+.feedback-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 12px; }
+button#completion-comment { background: transparent; color: var(--fg); box-shadow: none; text-decoration: underline; }
+/* Keep the practice reset and feedback controls from competing for one corner. */
+button#reset { left: 56px; right: auto; }
+@media(max-width: 360px) { .brand { font-size: 25px; } button#feedback-button { right: 4px; padding: 4px; } }
+
+body.feedback-open #back, body.feedback-open #reset { display: none !important; }

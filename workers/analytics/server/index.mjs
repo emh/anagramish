@@ -1,3 +1,4 @@
+import {ingestFeedback,feedbackPage} from './feedback.mjs';
 import {authorized} from './access.mjs';
 import dashboard from './dashboard.html';
 import {cachedReport,refreshSummaries} from './summary-cache.mjs';
@@ -34,8 +35,13 @@ export default {
  const url=new URL(request.url);
  try {
   if(url.pathname==='/ingest'&&request.method==='POST')return await ingest(request,env);
+  if(url.pathname==='/ingest-feedback'&&request.method==='POST') {
+   if(!env.INGEST_TOKEN||!await secureEquals(request.headers.get('authorization')??'',`Bearer ${env.INGEST_TOKEN}`))return json({error:'Unauthorized'},401);
+   return await ingestFeedback(request,env);
+  }
   let authCode='access_denied';
   if(!await authorized(request,env,{access:ctx?.access,onDenied:code=>{authCode=code;}}))return json({error:'Owner sign-in required.',code:authCode},403);
+  if(url.pathname==='/api/feedback'&&request.method==='GET'){const data=await feedbackPage(url,env);return json(data,data.status??200);}
   if(url.pathname==='/api/report'&&request.method==='GET')return await report(url,env);
   if(url.pathname==='/'&&request.method==='GET')return new Response(env.AUTH_MODE==='access'?dashboard.replace('<option value="production">','<option value="production" selected>'):dashboard,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow','X-Content-Type-Options':'nosniff'}});
   return json({error:'Not found'},404);

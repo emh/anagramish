@@ -72,8 +72,25 @@
                     <path d="M3 3v5h5"/>
                 </svg>
             </button>
+            <button id="feedback-button" type="button">Feedback</button>
             <div id="message"></div>
         </header>
+        <section id="feedback-panel" hidden aria-labelledby="feedback-heading">
+            <div class="feedback-heading"><h2 id="feedback-heading">Send feedback</h2><button id="feedback-close" type="button">Back to game</button></div>
+            <p>Found a bug, got stuck, or have an idea? We’d love to hear it.</p>
+            <form>
+                <fieldset id="feedback-rating"><legend>How was the puzzle? <span>(optional)</span></legend>
+                    <label><input type="radio" name="rating" value="easy"> Too easy</label>
+                    <label><input type="radio" name="rating" value="right"> Just right</label>
+                    <label><input type="radio" name="rating" value="hard"> Too hard</label>
+                </fieldset>
+                <label for="feedback-comment">Your feedback <span>(optional with a rating)</span></label>
+                <textarea id="feedback-comment" name="comment" maxlength="1000" rows="5" placeholder="What could make Anagramish better?"></textarea>
+                <p class="feedback-note">Up to 1,000 characters. Please don’t include personal information. We include the game, tutorial version and whether you’re a new or returning player to help understand your feedback.</p>
+                <button type="submit">Send feedback</button>
+                <p id="feedback-status" role="status" aria-live="polite"></p>
+            </form>
+        </section>
         <main>
         <section>
             <p>A daily five-letter anagram word ladder.</p>
@@ -129,6 +146,15 @@
                 <button id="practice">Practice</button>
                 <button id="history">History</button>
             </div>
+            <aside class="completion-feedback" aria-labelledby="completion-feedback-heading">
+                <h2 id="completion-feedback-heading">How was today’s puzzle?</h2>
+                <div class="feedback-choices">
+                    <button type="button" data-rating="easy">Too easy</button>
+                    <button type="button" data-rating="right">Just right</button>
+                    <button type="button" data-rating="hard">Too hard</button>
+                </div>
+                <button type="button" id="completion-comment">Leave a comment</button>
+            </aside>
         </section>
     </template>
 
