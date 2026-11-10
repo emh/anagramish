@@ -29,6 +29,13 @@
       "when": 1794330057721,
       "tag": "0003_yellow_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794331448672,
+      "tag": "0004_bored_giant_man",
+      "breakpoints": true
     }
   ]
 }

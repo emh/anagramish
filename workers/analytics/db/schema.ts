@@ -24,3 +24,8 @@ export const feedback = sqliteTable('feedback', {
  sessionId:text('session_id'),mode:text('mode'),puzzleDate:text('puzzle_date'),hard:integer('hard'),completed:integer('completed'),
  playerType:text('player_type').notNull(),firstPlayDay:text('first_play_day'),tutorialExperiment:text('tutorial_experiment'),tutorialVariant:text('tutorial_variant')
 },t=>[index('idx_feedback_environment_created').on(t.environment,t.createdAt,t.id)]);
+
+ // Insert-time counters keep dashboard refreshes independent of comment volume.
+export const feedbackDailyCounts = sqliteTable('feedback_daily_counts', {
+ environment:text('environment').notNull(),day:text('day').notNull(),submissions:integer('submissions').notNull().default(0)
+},t=>[primaryKey({columns:[t.environment,t.day]})]);

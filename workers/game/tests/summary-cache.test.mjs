@@ -18,6 +18,8 @@ function setup({historical=[]}={}) {
  historical.forEach(insert);
  sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0001_daily_summaries.sql',import.meta.url),'utf8'));
  sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0002_tutorial_experiment.sql',import.meta.url),'utf8'));
+ sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0003_yellow_moonstone.sql',import.meta.url),'utf8'));
+ sqlite.exec(readFileSync(new URL('../../analytics/drizzle/0004_bored_giant_man.sql',import.meta.url),'utf8'));
  return {sqlite,DB:db,queries,insert,SUMMARY_REFRESH_MS:0};
 }
 const now=Date.parse('2026-10-23T12:00:00Z'),day=at=>new Date(at).toISOString().slice(0,10),ago=n=>now-n*86400000;

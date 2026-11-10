@@ -25,3 +25,7 @@ jobs:
           const html=readFileSync('workers/analytics/server/dashboard.html','utf8');
           new Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
           NODE
+      - name: Check analytics dashboard in Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/analytics-browser" --no-package-lock --no-save playwright@1.56.1
+          PLAYWRIGHT_MODULE="$RUNNER_TEMP/analytics-browser/node_modules/playwright" CHROMIUM_PATH="$(command -v google-chrome)" node workers/game/tests/today-dashboard-browser.cjs
