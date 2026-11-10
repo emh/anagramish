@@ -19,10 +19,14 @@ assert.equal((await puzzle.json()).pair.length,2);
 const untrusted = await request('/api/config',{headers:{Origin:'https://untrusted.example'}});
 assert.equal(untrusted.status,403);
 for (const path of ['/dictionary.txt','/pairs.txt']) assert.equal((await request(path)).status,404);
-const report = await fetch('https://anagramish-analytics.emh.workers.dev/api/report?environment=production',{
+const feedback = await request('/api/feedback',{method:'POST',headers:{Authorization:`Bearer ${playerToken}`,'Content-Type':'application/json'},body:JSON.stringify({})});
+assert.equal(feedback.status,400,'Feedback rejects an empty submission without storing it');
+for(const path of ['/api/report?environment=production','/api/feedback?environment=production']) {
+const report = await fetch('https://anagramish-analytics.emh.workers.dev'+path,{
     redirect:'manual',headers:{'oai-authenticated-user-email':process.env.ANALYTICS_ADMIN_EMAIL || 'forged@example.test'},signal:AbortSignal.timeout(15000)
 });
 assert.ok([302,303,401,403].includes(report.status),`Unauthenticated analytics returned ${report.status}`);
+}
 }
 
 // New workers.dev routes and secret versions can take time to reach the edge.
@@ -36,4 +40,4 @@ for (let attempt = 1; ; attempt++) {
         await new Promise(resolve => setTimeout(resolve, 5000));
     }
 }
-console.log('Production API and private-dashboard smoke checks passed. No gameplay events were recorded.');
+console.log('Production API and private-dashboard smoke checks passed. No gameplay events or feedback were recorded.');

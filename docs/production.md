@@ -171,3 +171,48 @@ eligibility, the planned review and limitations. To stop enrollment, set that
 configuration value to an empty string and deploy; already assigned attempts can
 still report outcomes. Direct Cloudflare variable changes are overwritten by the
 next GitHub deployment.
+
+
+## Player feedback
+
+The persistent header button opens an optional feedback screen. Puzzle completion
+also offers Too easy / Just right / Too hard and a comment link below the result
+and sharing controls. Players explicitly press Send feedback; opening the form
+or choosing a rating does not submit anything. The current board is preserved,
+and the game clock pauses while the form is open. Comments are limited to 1,000
+characters, no email is requested, and no feedback is added to gameplay metrics.
+
+The signed game API validates session ownership and snapshots context at receipt:
+mode (daily or practice), puzzle date, difficulty, server-recorded completion,
+app build commit, screen/entry point and the browser's last-used tutorial version
+(if recorded since this release). Tutorial context is client-reported, with the
+experiment assignment checked in production. General comments may have no puzzle
+context. A finish that has not yet reached the server is marked as not recorded.
+
+Player status is derived from the earliest server game session for that browser,
+using an index on `(player, started_at)`. `first_day` means its first daily OR
+practice game was on the submission's UTC day; `returning` means an earlier UTC
+day; `not_yet_played` means there is no recorded game session. This follows the
+period report's all-game definition (the Today daily-only panel has its own
+mode-specific cohort). Status and first-play date are frozen at submission.
+Clearing browser storage or changing devices creates a new identity; historical
+play before server tracking cannot be reconstructed.
+
+The game migration adds indexed feedback receipts and the session time index.
+Each browser may send three new submissions per rolling 24 hours, in addition
+to the existing per-IP API rate limit. The quota check, receipt and outbox entry
+commit atomically. A stable submission ID makes retries idempotent, including
+when a saved response is lost. Unconfirmed retries keep their original payload.
+The outbox forwards feedback through the existing authenticated service binding
+to `/ingest-feedback`, retrying on API activity and the five-minute cron. Receipts
+remain after delivery for deduplication; comments live in the analytics database
+(and temporarily in the game outbox). Existing retention policy applies.
+
+The analytics migration adds a separate `feedback` table and an environment/time/ID
+index. Owner-only `/api/feedback` serves at most 30 items per page with an indexed
+cursor, never scanning events or counting all submissions. **Player feedback**
+in the dashboard loads only on request, uses the selected environment and period,
+shows text safely, and can download loaded submissions as JSON. The standard
+stats export and automatic report refresh do not include or read feedback. Daily
+and practice context remain labeled separately; no migrations rewrite gameplay
+history. Production deploy applies analytics first, then the API, then Pages.

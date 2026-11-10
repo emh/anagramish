@@ -17,3 +17,10 @@ export const reportCache = sqliteTable('analytics_report_cache', {
  environment:text('environment').notNull(), days:integer('days').notNull(), cursor:integer('cursor').notNull(),
  expiresAt:integer('expires_at').notNull(), payload:text('payload').notNull()
 },t=>[primaryKey({columns:[t.environment,t.days]})]);
+
+export const feedback = sqliteTable('feedback', {
+ id:text('id').primaryKey(),player:text('player').notNull(),createdAt:integer('created_at').notNull(),environment:text('environment').notNull(),
+ entry:text('entry').notNull(),screen:text('screen').notNull(),rating:text('rating'),comment:text('comment').notNull(),appVersion:text('app_version').notNull(),
+ sessionId:text('session_id'),mode:text('mode'),puzzleDate:text('puzzle_date'),hard:integer('hard'),completed:integer('completed'),
+ playerType:text('player_type').notNull(),firstPlayDay:text('first_play_day'),tutorialExperiment:text('tutorial_experiment'),tutorialVariant:text('tutorial_variant')
+},t=>[index('idx_feedback_environment_created').on(t.environment,t.createdAt,t.id)]);
