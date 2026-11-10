@@ -108,6 +108,33 @@ The cache removes D1 scans, but cold report aggregation still grows with retaine
 summary history in Worker memory. If traffic grows substantially beyond the
 current scale, compact long-term player/cohort facts before pruning raw history.
 
+## Period averages and chart coverage
+
+Reports include `coverage`: the first recorded activity day for the selected
+environment, the covered start/end dates, completed-day count, sum of daily
+unique players (`player_days`), and `average_daily_players`. The average starts
+at the later of the requested period start and first recorded activity date,
+and ends yesterday UTC. Days with no activity inside that interval count as
+zero; dates before tracking and today's unfinished day do not enter the average.
+No completed covered days produces `null` (shown as a dash), not a zero average.
+The first recorded activity date is a proxy for tracking availability, not proof
+of all-day instrumentation or uninterrupted collection; its initial day may be
+partial. No known collection-outage calendar is available.
+
+The chart uses the report's dates rather than the viewer's clock, omits dates
+before coverage, and marks today's partial bar. Hover, focus/arrow keys or tap
+shows exact daily counts, including tracked zero-activity dates. Period totals
+and the chart still include daily and practice games, as labeled; the Today/
+Yesterday breakdown keeps them separate. Neither change adds raw D1 reads.
+
+Calculation audit: D1/D7 retention uses unique first-play cohorts only after the
+entire return day ends; acquisition finish rates wait until the first UTC day
+ends; tutorial funnel and A/B outcomes wait a full 24 hours from the first attempt.
+These use eligible browsers/attempts, not calendar-day divisors. Game duration,
+mistake and word-count averages use completed games with recorded values, even
+if those games finish on the current day. Source/location percentages use the
+selected day's players. No other fixed-period denominator was found.
+
 ## Today overview
 
 The dashboard also includes `today_overview` in each report and JSON download.

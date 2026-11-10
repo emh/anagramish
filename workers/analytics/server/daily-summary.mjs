@@ -127,7 +127,17 @@ export function aggregate(summaries,{environment,days,now=Date.now()}) {
   funnel.finished_after_completion+=Number((playerCompletions.get(t.player)??[]).some(f=>f.at>=c.at&&f.at<end&&plays.some(p=>p.session===f.session&&p.at<=f.at)));
  }
  const byText=(a,b)=>a<b?-1:a>b?1:0;
+ // Infer the observation boundary from all retained activity, not the selected
+ // window or only days with players. Missing days after that boundary count as
+ // zero activity; dates before it are unobserved. Today is still incomplete.
+ const firstRecordedDay=summaries.filter(d=>d.events>0&&d.day<=today).map(d=>d.day).sort()[0]??null;
+ const coveredFrom=firstRecordedDay?(firstRecordedDay>from?firstRecordedDay:from):null;
+ const completedDays=coveredFrom?Math.max(0,(Date.parse(today+'T00:00:00Z')-Date.parse(coveredFrom+'T00:00:00Z'))/86400000):0;
+ const playerDays=[...daily.values()].filter(d=>coveredFrom&&d.day>=coveredFrom&&d.day<today).reduce((n,d)=>n+d.players.size,0);
+ const coverage={first_recorded_day:firstRecordedDay,from:coveredFrom,through:completedDays?addDays(today,-1):null,
+  completed_days:completedDays,player_days:playerDays,average_daily_players:completedDays?playerDays/completedDays:null};
  return {environment,days,from,today,summary,
+  coverage,
   today_overview:todayOverview(summaries,today),
   yesterday_overview:todayOverview(summaries,addDays(today,-1)),
   tutorial_experiment:tutorialExperimentReport({firstTutorials,firsts,playerPlays,playerCompletions,tutorialCompleted,active,now}),
