@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { rm,mkdir,cp,writeFile,readFile } from 'node:fs/promises';
 await rm('dist',{recursive:true,force:true});await mkdir('dist/server',{recursive:true});
 await mkdir('dist/client',{recursive:true});
-for(const file of ['index.html','style.css','main.mjs','feedback.mjs','app-version.mjs','puzzle-input.mjs','tile-motion.mjs','tile-drag.mjs','api-client.mjs','api-config.mjs','html.mjs','utils.js','tutorial.mjs','tutorial-experiment.mjs','acquisition.mjs','favicon.svg','anagramish.png','how-to-play.html','guide.css','robots.txt','sitemap.xml'])await cp('../../'+file,'dist/client/'+file);
+for(const file of ['index.html','style.css','main.mjs','style-score.mjs','feedback.mjs','app-version.mjs','puzzle-input.mjs','tile-motion.mjs','tile-drag.mjs','api-client.mjs','api-config.mjs','html.mjs','utils.js','tutorial.mjs','tutorial-experiment.mjs','acquisition.mjs','favicon.svg','anagramish.png','how-to-play.html','guide.css','robots.txt','sitemap.xml'])await cp('../../'+file,'dist/client/'+file);
 const revision=process.env.GITHUB_SHA||'development';
 await writeFile('dist/client/app-version.mjs',`export const APP_VERSION = ${JSON.stringify(revision)};\n`);
 await build({entryPoints:['server/index.mjs'],outfile:'dist/server/index.js',bundle:true,format:'esm',platform:'browser',target:'es2022',loader:{'.txt':'text'},minify:true});

@@ -8,6 +8,7 @@ import { getAttribution } from './acquisition.mjs';
 import { placeLetter, eraseLetter, rowComplete } from './puzzle-input.mjs';
 import { animate, press, fly, clearFlights, rowFeedback } from './tile-motion.mjs';
 import { setupTileDrag } from './tile-drag.mjs';
+import { getTileKind, getStyleRating } from './style-score.mjs';
 
 // The initial HTML is also the welcome screen, so rules are readable without JS.
 const welcomeTemplate = document.createElement('template');
@@ -95,11 +96,12 @@ const formatElapsedTime = (numSeconds) => {
 
 const formatGameTime = () => `${formatElapsedTime(state.numSeconds)}${state.hardMode ? ' 💪' : ''}`;
 const formatShareDate = (dateKey) => dateKey.replace(/-/g, '.');
-const getShareSquare = (char) => state.pair[0].includes(char) ? '🟦' : state.pair[1].includes(char) ? '🟧' : '⬜';
+const getShareSquare = (char) => ({start: '🟦', end: '🟧', misc: '⬜', normal: '⬜'})[getTileKind(state.pair, char)];
 
 const getShareText = () => [
     `Anagramish ${formatShareDate(state.dailyKey ?? key())}`,
     `#${state.puzzleNumber} in ${formatGameTime()}`,
+    `Style: ${'💅'.repeat(getStyleRating(state.board, state.pair))}`,
     ...state.board.slice(1, -1).map((row) => row.map(getShareSquare).join(''))
 ].join('\n');
 
@@ -645,6 +647,9 @@ const renderFinish = (app) => {
     get('#time').textContent = formatGameTime();
     get('#mistakes').textContent = state.mistakes;
     get('#words').textContent = state.board.length - 2;
+    const styleRating = getStyleRating(state.board, state.pair);
+    get('#style-rating').textContent = '💅'.repeat(styleRating);
+    get('#style-rating').setAttribute('aria-label', `${styleRating} out of 5 for style`);
     get('#puzzle-number').textContent = `#${state.puzzleNumber}`;
     syncResult(loadGame(),state.isPractice,state.dailyKey);
     get('#completion-feedback-heading').textContent=state.isPractice?'How was this practice puzzle?':state.dailyKey===key()?'How was today’s puzzle?':'How was this puzzle?';
@@ -963,13 +968,11 @@ const renderTutorial = (app) => {
     app.append(section);
 };
 
-const getCharClass = (pair, char) => char === null ? 'normal' : pair[0].includes(char) ? 'start' : pair[1].includes(char) ? 'end' : 'misc';
-
 const updateBoardCells = (element, board, pair, position, interactive) => {
     const cells = element.querySelectorAll('.cell');
     board.forEach((row, y) => row.forEach((char, x) => {
         const cell = cells[y * row.length + x];
-        cell.className = `cell ${getCharClass(pair, char)}`;
+        cell.className = `cell ${getTileKind(pair, char)}`;
         cell.classList.toggle('current', position?.y === y && position?.x === x);
         cell.classList.toggle('active-row', position?.y === y);
         cell.querySelector('.glyph').textContent = char ?? '';
