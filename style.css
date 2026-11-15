@@ -494,6 +494,9 @@ section.tutorial-screen { width: 100%; padding: 16px 20px 8px; gap: 10px; }
 .welcome-heading { margin: 22px 0 0; font-size: 20px; letter-spacing: normal; }
 .rules-link { margin: 16px 0 24px; line-height: 1.5; }
 .rules-link a { color: var(--fg); text-underline-offset: 3px; }
+.community-badge { margin: 24px 0 8px; }
+.community-badge a { display: inline-block; line-height: 0; }
+.community-badge img { display: block; }
 
 @media (max-width: 420px) {
     .finish-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
