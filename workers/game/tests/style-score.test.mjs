@@ -4,13 +4,43 @@ import {getStyleScore, getStyleRating, getTileKind} from '../../../style-score.m
 
 const pair = ['bbbbb', 'ooooo'];
 const score = rows => getStyleScore(['bbbbb', ...rows, 'ooooo'].map(row => [...row]), pair);
+const rating = rows => getStyleRating(['bbbbb', ...rows, 'ooooo'].map(row => [...row]), pair);
 const staircase = ['bbbbo', 'bbboo', 'bbooo', 'boooo'];
+// The November 16 share that previously received four nails despite scattered colors.
+const scatteredShare = ['bobbb', 'obbbb', 'oboob', 'ooboo'];
 
 test('style becomes one to five nails, with five for the reference board', () => {
-    const rating = rows => getStyleRating(['bbbbb', ...rows, 'ooooo'].map(row => [...row]), pair);
     assert.equal(rating(staircase), 5);
     assert.equal(rating(['bbbbb', 'bbbbb', 'bbbbb', 'bbbbb']), 1);
-    assert.equal(rating(['bobbb', 'obbob', 'oobob', 'ooobo']), 4);
+    assert.equal(rating(['bobbb', 'obbob', 'oobob', 'ooobo']), 2);
+});
+
+test('the reported scattered share earns two nails in either orientation or palette', () => {
+    assert.equal(rating(scatteredShare), 2);
+    assert.equal(rating(scatteredShare.map(row => [...row].reverse().join(''))), 2);
+    assert.equal(rating([...scatteredShare].reverse()), 2);
+    assert.equal(rating(scatteredShare.map(row => row.replace(/[bo]/g, color => color === 'b' ? 'o' : 'b'))), 2);
+});
+
+test('upper tiers distinguish connected patterns from fragmented or merely balanced boards', () => {
+    assert.equal(rating(['bobob', 'obobo', 'bobob', 'obobo']), 1);
+    assert.equal(rating(['bbbbo', 'obbbo', 'oobbo', 'ooboo']), 2);
+    assert.equal(rating(['bbbbb', 'booob', 'booob', 'bbbbb']), 3);
+    assert.equal(rating(['bbbbo', 'bbboo', 'bbooo', 'obooo']), 4);
+    assert.equal(rating(staircase), 5);
+});
+
+test('most standard four-step color layouts do not qualify for high style ratings', () => {
+    const patterns = count => Array.from({length: 32}, (_, mask) =>
+        Array.from({length: 5}, (_, x) => mask & (1 << x) ? 'b' : 'o').join('')
+    ).filter(row => [...row].filter(color => color === 'b').length === count);
+    const counts = [0, 0, 0, 0, 0];
+    for (const a of patterns(4)) for (const b of patterns(3)) {
+        for (const c of patterns(2)) for (const d of patterns(1)) counts[rating([a, b, c, d]) - 1]++;
+    }
+    assert.ok(counts[0] + counts[1] > 1250, 'Most arrangements should earn one or two nails');
+    assert.ok(counts[3] + counts[4] < 125, 'Four and five nails should reward exceptional arrangements');
+    assert.ok(counts[4] > 0 && counts[4] < 25, 'Five nails must remain attainable and rare');
 });
 
 test('the reference staircase earns full style points in either orientation or palette', () => {

@@ -27,12 +27,12 @@ export async function run(page, baseURL = 'http://127.0.0.1:4173') {
     };
 
     await seed();
-    assert.equal(await page.locator('#style-rating').textContent(), '💅💅💅💅');
+    assert.equal(await page.locator('#style-rating').textContent(), '💅💅');
     assert.equal(await page.locator('.stats').getByText('Style:', {exact: true}).count(), 1);
-    assert.equal(await page.locator('#style-rating').getAttribute('aria-label'), '4 out of 5 for style');
+    assert.equal(await page.locator('#style-rating').getAttribute('aria-label'), '2 out of 5 for style');
     await page.getByRole('button', {name: 'Copy', exact: true}).click();
     const copied = await page.evaluate(() => window.copiedShare);
-    assert.match(copied, /^Anagramish \d{4}\.\d{2}\.\d{2}\n#73 in 00:42\nStyle: 💅💅💅💅\n/);
+    assert.match(copied, /^Anagramish \d{4}\.\d{2}\.\d{2}\n#73 in 00:42\nStyle: 💅💅\n/);
     assert.deepEqual(copied.split('\n').slice(3), ['🟦🟦🟦🟦🟧', '🟧🟦🟦🟦🟧', '🟧🟧🟦🟦🟧', '🟧🟧🟦🟧🟧']);
     await page.evaluate(() => {window.copiedShare = null;});
     await page.getByRole('button', {name: 'Share', exact: true}).click();
@@ -42,9 +42,9 @@ export async function run(page, baseURL = 'http://127.0.0.1:4173') {
     assert.equal(await page.evaluate(() => window.nativeShare), copied);
 
     await seed({legacy: true, hard: true});
-    assert.equal(await page.locator('#style-rating').textContent(), '💅💅💅💅');
+    assert.equal(await page.locator('#style-rating').textContent(), '💅💅');
     await page.getByRole('button', {name: 'Copy', exact: true}).click();
-    assert.match(await page.evaluate(() => window.copiedShare), /#73 in 00:42 💪\nStyle: 💅💅💅💅/);
+    assert.match(await page.evaluate(() => window.copiedShare), /#73 in 00:42 💪\nStyle: 💅💅/);
 
     await seed({words: ['lacks', 'hacks', 'shack', 'shake', 'share']});
     const longerScore = await page.locator('#style-rating').textContent();
@@ -65,7 +65,7 @@ export async function run(page, baseURL = 'http://127.0.0.1:4173') {
         if (i < 3) await page.waitForFunction(y => document.querySelector('.current')?.dataset.y === String(y), i + 2);
     }
     await page.locator('#style-rating').waitFor();
-    assert.equal(await page.locator('#style-rating').textContent(), '💅💅💅💅');
+    assert.equal(await page.locator('#style-rating').textContent(), '💅💅');
     assert.equal(await page.locator('#share').isVisible(), false);
     assert.equal(await page.locator('#copy').isVisible(), false);
 

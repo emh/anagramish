@@ -83,5 +83,10 @@ export const getStyleScore = (board, pair) => {
         + Math.round(25 * flow(grid)) + Math.round(15 * cohesion(grid));
 };
 
-// Five equal bands; the underlying points are only used to choose the emoji count.
-export const getStyleRating = (board, pair) => Math.min(5, Math.floor(getStyleScore(board, pair) / 20) + 1);
+// Balance and chance color matches give even fragmented ladders a score above 60.
+// Calibrate the emoji tiers to actual patterns, reserving four and five for clean shapes.
+const styleThresholds = [70, 80, 88, 96];
+export const getStyleRating = (board, pair) => {
+    const score = getStyleScore(board, pair);
+    return 1 + styleThresholds.filter(threshold => score >= threshold).length;
+};
