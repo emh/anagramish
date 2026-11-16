@@ -32,8 +32,9 @@ export async function run(page, baseURL = 'http://127.0.0.1:4173') {
     assert.equal(await page.locator('#style-rating').getAttribute('aria-label'), '2 out of 5 for style');
     await page.getByRole('button', {name: 'Copy', exact: true}).click();
     const copied = await page.evaluate(() => window.copiedShare);
-    assert.match(copied, /^Anagramish \d{4}\.\d{2}\.\d{2}\n#73 in 00:42\nStyle: 💅💅\n/);
-    assert.deepEqual(copied.split('\n').slice(3), ['🟦🟦🟦🟦🟧', '🟧🟦🟦🟦🟧', '🟧🟧🟦🟦🟧', '🟧🟧🟦🟧🟧']);
+    assert.match(copied, /^Anagramish \d{4}\.\d{2}\.\d{2}\n#73 in 00:42\n/);
+    assert.deepEqual(copied.split('\n').slice(2, -1), ['🟦🟦🟦🟦🟧', '🟧🟦🟦🟦🟧', '🟧🟧🟦🟦🟧', '🟧🟧🟦🟧🟧']);
+    assert.equal(copied.split('\n').at(-1), '💅💅');
     await page.evaluate(() => {window.copiedShare = null;});
     await page.getByRole('button', {name: 'Share', exact: true}).click();
     assert.equal(await page.evaluate(() => window.copiedShare), copied);
@@ -44,14 +45,16 @@ export async function run(page, baseURL = 'http://127.0.0.1:4173') {
     await seed({legacy: true, hard: true});
     assert.equal(await page.locator('#style-rating').textContent(), '💅💅');
     await page.getByRole('button', {name: 'Copy', exact: true}).click();
-    assert.match(await page.evaluate(() => window.copiedShare), /#73 in 00:42 💪\nStyle: 💅💅/);
+    const hardShare = await page.evaluate(() => window.copiedShare);
+    assert.match(hardShare, /#73 in 00:42 💪\n/);
+    assert.equal(hardShare.split('\n').at(-1), '💅💅');
 
     await seed({words: ['lacks', 'hacks', 'shack', 'shake', 'share']});
     const longerScore = await page.locator('#style-rating').textContent();
     assert.equal(await page.locator('.board .cell').count(), 35);
     await page.getByRole('button', {name: 'Copy', exact: true}).click();
     const longerShare = await page.evaluate(() => window.copiedShare);
-    assert.equal(longerShare.split('\n')[2], `Style: ${longerScore}`);
+    assert.equal(longerShare.split('\n').at(-1), longerScore);
     assert.equal(longerShare.split('\n').length, 8);
 
     // Complete a real practice ladder to exercise the live finish transition.

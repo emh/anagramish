@@ -101,8 +101,8 @@ const getShareSquare = (char) => ({start: '🟦', end: '🟧', misc: '⬜', norm
 const getShareText = () => [
     `Anagramish ${formatShareDate(state.dailyKey ?? key())}`,
     `#${state.puzzleNumber} in ${formatGameTime()}`,
-    `Style: ${'💅'.repeat(getStyleRating(state.board, state.pair))}`,
-    ...state.board.slice(1, -1).map((row) => row.map(getShareSquare).join(''))
+    ...state.board.slice(1, -1).map((row) => row.map(getShareSquare).join('')),
+    '💅'.repeat(getStyleRating(state.board, state.pair))
 ].join('\n');
 
 const copyShareText = async () => {
